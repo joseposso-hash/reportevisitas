@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node server.js",
-    "start:dev": "node server.js"
-  },
+  "start": "node server.js",
+  "prisma:generate": "prisma generate",
+  "prisma:deploy": "prisma migrate deploy"
+},
   "dependencies": {
     "@prisma/client": "^5.9.0",
     "bcryptjs": "^2.4.3",
@@ -18,3 +19,4 @@
     "prisma": "^5.9.0"
   }
 }
+
