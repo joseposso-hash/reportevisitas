@@ -13,7 +13,7 @@ const prisma = new PrismaClient();
 const JWT_SECRET = 'prueba-secret-cambiar-en-produccion';
 const PORT = 3001;
 
-app.use(app.use(cors({ origin: '*' })););
+app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
 
 // Uploads
