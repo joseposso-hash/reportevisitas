@@ -14,11 +14,16 @@ const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'secreto-local';
 const PORT = process.env.PORT || 3001;
 
+// ============ CONFIGURACIÓN DE CORS (ABIERTA PARA VERCEL) ============
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+app.use(express.json({ limit: '10mb' }));
+
+// ============ CONFIGURACIÓN DE UPLOADS ============
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
@@ -30,6 +35,7 @@ const upload = multer({
   })
 });
 
+// ============ MIDDLEWARE DE AUTENTICACIÓN ============
 function auth(req, res, next) {
   const header = req.headers.authorization;
   if (!header) return res.status(401).json({ message: 'No autorizado' });
@@ -42,19 +48,44 @@ function auth(req, res, next) {
   }
 }
 
-// ============ AUTH ============
+// ============ RUTA DE LOGIN ============
 app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body;
-  const user = await prisma.usuario.findUnique({ where: { email }, include: { tecnico: true } });
-  if (!user || !user.activo) return res.status(401).json({ message: 'Credenciales inválidas' });
-  const ok = await bcrypt.compare(password, user.password);
-  if (!ok) return res.status(401).json({ message: 'Credenciales inválidas' });
-  
-  const token = jwt.sign({ sub: user.id, email: user.email, rol: user.rol, nombre: user.nombre }, JWT_SECRET, { expiresIn: '7d' });
-  res.json({ access_token: token, user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol, tecnicoId: user.tecnico?.id || null } });
+  try {
+    const { email, password } = req.body;
+    const user = await prisma.usuario.findUnique({ where: { email }, include: { tecnico: true } });
+    
+    if (!user || !user.activo) {
+      return res.status(401).json({ message: 'Credenciales inválidas' });
+    }
+    
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) {
+      return res.status(401).json({ message: 'Credenciales inválidas' });
+    }
+    
+    const token = jwt.sign(
+      { sub: user.id, email: user.email, rol: user.rol, nombre: user.nombre },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
+    res.json({
+      access_token: token,
+      user: {
+        id: user.id,
+        nombre: user.nombre,
+        email: user.email,
+        rol: user.rol,
+        tecnicoId: user.tecnico?.id || null
+      }
+    });
+  } catch (error) {
+    console.error('Error en login:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
 });
 
-// ============ VISITAS ============
+// ============ RUTAS DE VISITAS ============
 app.get('/api/visitas', auth, async (req, res) => {
   const where = {};
   if (req.query.tecnicoId) where.tecnicoId = req.query.tecnicoId;
@@ -71,6 +102,7 @@ app.get('/api/visitas/:id', auth, async (req, res) => {
     where: { id: req.params.id },
     include: { cliente: true, sede: { include: { equipos: true } }, tecnico: { include: { usuario: true } }, checklist: true, fotos: true, cotizacion: { include: { items: true } } }
   });
+  if (!visita) return res.status(404).json({ message: 'Visita no encontrada' });
   res.json(visita);
 });
 
@@ -79,7 +111,7 @@ app.patch('/api/visitas/:id', auth, async (req, res) => {
   res.json(v);
 });
 
-// ============ EQUIPOS ============
+// ============ RUTAS DE EQUIPOS ============
 app.get('/api/equipos/sede/:sedeId', auth, async (req, res) => {
   const equipos = await prisma.equipo.findMany({
     where: { sedeId: req.params.sedeId },
@@ -115,7 +147,7 @@ app.post('/api/equipos/:id/foto', auth, upload.single('file'), async (req, res) 
   res.json({ ...foto, urlAbsoluta: req.protocol + '://' + req.get('host') + foto.url });
 });
 
-// ============ GENERAR PDF GENERAL (TABLA) ============
+// ============ RUTA PARA GENERAR EL PDF GENERAL ============
 app.get('/api/visitas/:id/pdf-general', auth, async (req, res) => {
   try {
     const visita = await prisma.visita.findUnique({
@@ -135,21 +167,25 @@ app.get('/api/visitas/:id/pdf-general', auth, async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="Reporte-General-${visita.folio}.pdf"`);
     doc.pipe(res);
 
+    // Encabezado
     doc.fontSize(16).fillColor('#1e3a8a').text('N24 SEGURIDAD ELECTRÓNICA', { align: 'center' });
     doc.fontSize(10).fillColor('#64748b').text('REPORTE GENERAL DE MANTENIMIENTO PREVENTIVO', { align: 'center' });
     doc.moveDown(1);
 
+    // Datos generales
     doc.fontSize(10).fillColor('#000000');
     doc.text(`CLIENTE: ${visita.cliente.razonSocial}    |    FECHA: ${new Date(visita.fechaProgramada).toLocaleDateString('es-CO')}`);
     doc.text(`DIRECCIÓN: ${visita.sede.direccion || 'N/A'}    |    TELÉFONO: ${visita.cliente.contactoTel || 'N/A'}`);
     doc.text(`TÉCNICO: ${visita.tecnico.usuario.nombre}`);
     doc.moveDown(1);
 
+    // Tabla de equipos
     const colX = [30, 80, 200, 270, 340, 400, 460, 510, 560];
     const colW = [50, 120, 70, 70, 60, 60, 50, 50, 50];
     const rowH = 18;
     let y = doc.y;
 
+    // Cabecera de tabla
     doc.rect(30, y, 540, rowH).fill('#1e3a8a');
     doc.fillColor('#ffffff').fontSize(8);
     doc.text('ITEM', colX[0] + 2, y + 5, { width: colW[0] });
@@ -162,6 +198,7 @@ app.get('/api/visitas/:id/pdf-general', auth, async (req, res) => {
     doc.text('CLAVE', colX[7] + 2, y + 5, { width: colW[7] });
     y += rowH;
 
+    // Filas de equipos
     doc.fillColor('#000000');
     visita.sede.equipos.forEach((eq, i) => {
       doc.rect(30, y, 540, rowH).fill(i % 2 === 0 ? '#f8fafc' : '#ffffff');
@@ -177,6 +214,7 @@ app.get('/api/visitas/:id/pdf-general', auth, async (req, res) => {
       y += rowH;
     });
 
+    // Cotización (si existe)
     if (visita.cotizacion) {
       doc.moveDown(2);
       doc.fontSize(12).fillColor('#1e3a8a').text('4. COTIZACIÓN ANEXA');
@@ -211,12 +249,12 @@ app.get('/api/visitas/:id/pdf-general', auth, async (req, res) => {
 
     doc.end();
   } catch (error) {
-    console.error(error);
+    console.error('Error generando PDF:', error);
     res.status(500).send('Error generando PDF');
   }
 });
 
-// ============ GENERAR HOJA DE VIDA ============
+// ============ RUTA PARA GENERAR HOJA DE VIDA ============
 app.get('/api/equipos/:id/pdf', auth, async (req, res) => {
   try {
     const equipo = await prisma.equipo.findUnique({
@@ -281,12 +319,12 @@ app.get('/api/equipos/:id/pdf', auth, async (req, res) => {
 
     doc.end();
   } catch (error) {
-    console.error(error);
+    console.error('Error generando PDF:', error);
     res.status(500).send('Error generando PDF');
   }
 });
 
-// ============ COTIZACIONES ============
+// ============ RUTAS DE COTIZACIONES ============
 app.post('/api/cotizaciones/visita/:visitaId', auth, async (req, res) => {
   const { items, notas, validezDias = 15, ivaPorcentaje = 19 } = req.body;
   
@@ -341,7 +379,7 @@ app.get('/api/cotizaciones/visita/:visitaId', auth, async (req, res) => {
   res.json(cot);
 });
 
-// ============ START ============
+// ============ INICIO DEL SERVIDOR ============
 app.listen(PORT, () => {
-  console.log('\n🚀 Backend en http://localhost:' + PORT + '/api');
+  console.log(`\n🚀 Backend en http://localhost:${PORT}/api`);
 });
