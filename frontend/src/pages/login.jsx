@@ -4,8 +4,8 @@ import { api } from '../lib/api';
 import { useAuthStore } from '../stores/auth';
 
 export function Login() {
-  const [email, setEmail] = useState('n24seguridadelectronicagmail.com');
-  const [password, setPassword] = useState('N24seguridad2026');
+  const [email, setEmail] = useState('n24seguridadelectronica@gmail.com');
+const [password, setPassword] = useState('N24seguridad');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
