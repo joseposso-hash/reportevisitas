@@ -15,13 +15,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secreto-local';
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: [
-    'https://n24se-n24-de41.vercel.app', // Tu URL de Vercel
-    'http://localhost:5173'              // Para que siga funcionando en tu PC
-  ],
-  credentials: true
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
