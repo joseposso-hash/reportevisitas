@@ -5,27 +5,37 @@ import { VisitaDetalle } from './pages/VisitaDetalle';
 import { Layout } from './components/Layout';
 import { useAuthStore } from './stores/auth';
 
-function ProtectedRoute({ children }) {
-  const token = useAuthStore(s => s.token);
-  if (!token) return <Navigate to="/login" replace />;
-  return children;
-}
-
 export default function App() {
+  const token = useAuthStore(s => s.token);
+
   return (
     <Routes>
+      {/* Ruta pública */}
       <Route path="/login" element={<Login />} />
-      <Route path="/*" element={
-        <ProtectedRoute>
+
+      {/* Rutas protegidas */}
+      <Route path="/" element={
+        token ? (
           <Layout>
-            <Routes>
-              <Route path="/" element={<VisitasHoy />} />
-              <Route path="/visitas/:id" element={<VisitaDetalle />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
+            <VisitasHoy />
           </Layout>
-        </ProtectedRoute>
+        ) : (
+          <Navigate to="/login" replace />
+        )
       } />
+      
+      <Route path="/visitas/:id" element={
+        token ? (
+          <Layout>
+            <VisitaDetalle />
+          </Layout>
+        ) : (
+          <Navigate to="/login" replace />
+        )
+      } />
+
+      {/* Redirección por defecto */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
