@@ -1,0 +1,2006 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>N24SE · Gestión de Visitas Técnicas</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root{--navy:#172b4d;--blue:#1769aa;--bg:#f3f6fa;--line:#dbe3ec;--text:#253247;--muted:#65758b;--green:#16784a;--amber:#8a5a00;--red:#b42318}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);font-family:'Inter',Segoe UI,Arial,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+
+/* Encabezado */
+header{background:var(--navy);color:#fff;padding:15px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;box-shadow:0 4px 12px rgba(0,0,0,.1);position:sticky;top:0;z-index:50}
+.brand{display:flex;align-items:center;gap:11px}.logo{border:2px solid white;border-radius:10px;width:62px;height:43px;display:grid;place-items:center;font-weight:800;font-size:12px;white-space:nowrap}.brand h1{font-size:18px;margin:0}.brand p{font-size:12px;margin:4px 0 0;color:#d7e2f0}.userline{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+/* Estructura */
+main{max-width:1250px;margin:22px auto;padding:0 16px}.hidden{display:none!important}
+.card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(23,43,77,.04);transition:box-shadow .2s}
+.card:hover{box-shadow:0 4px 15px rgba(23,43,77,.08)}
+.login{max-width:440px;margin:55px auto}
+.tabs,.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tabs{margin-bottom:16px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.tabs button{background:transparent;color:var(--muted);border-radius:8px;padding:8px 12px;transition:all .2s}
+.tabs button:hover{background:#eef2f7;color:var(--navy)}
+.tabs button.active{background:#e7f1fb;color:var(--blue);font-weight:700}
+
+/* Botones y Formularios */
+button{border:0;border-radius:8px;padding:10px 13px;font-weight:600;font-size:13px;cursor:pointer;background:var(--blue);color:#fff;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button:hover{filter:brightness(1.1);transform:translateY(-1px)}
+button:active{transform:translateY(0)}
+button.secondary{background:#e8eef5;color:var(--navy)}
+button.secondary:hover{background:#dce4ed}
+button.danger{background:#fff0ef;color:var(--red)}
+button.danger:hover{background:#ffe4e1}
+button.success{background:#e5f7ed;color:var(--green)}
+button.success:hover{background:#d1f0df}
+button.small{padding:6px 10px;font-size:11px}
+
+h2{font-size:19px;margin:0 0 15px;color:var(--navy)}h3{font-size:15px;margin:21px 0 10px;color:var(--navy)}
+.muted{font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.full{grid-column:1/-1}.field{min-width:0}
+label{display:block;font-size:12px;font-weight:600;color:#46566c;margin:0 0 6px}
+input,select,textarea{width:100%;border:1px solid #cbd6e2;border-radius:8px;padding:10px 11px;font:inherit;font-size:14px;background:#fff;color:var(--text);transition:border .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(23,105,170,.1)}
+textarea{min-height:82px;resize:vertical}
+
+/* Estadísticas */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.stat{background:white;border:1px solid var(--line);border-radius:12px;padding:15px;box-shadow:0 2px 8px rgba(23,43,77,.04)}
+.stat strong{display:block;font-size:24px;margin-top:4px;color:var(--navy)}
+
+/* Tablas */
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;background:#fafbfc}
+tr:hover td{background:#f8fafc}
+
+/* Pills / Etiquetas */
+.pill{display:inline-block;padding:4px 8px;border-radius:20px;background:#edf2f7;font-size:11px;font-weight:700;white-space:nowrap}
+.green{background:#e5f7ed;color:var(--green)}.red{background:#fff0ef;color:var(--red)}.amber{background:#fff2d8;color:var(--amber)}.blue{background:#e7f1fb;color:#175b91}
+
+/* Sistema de Notificaciones (Toasts) */
+#toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.toast{background:#fff;border-left:4px solid var(--blue);padding:12px 16px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;transform:translateX(120%);opacity:0;transition:all .3s cubic-bezier(0.68, -0.55, 0.265, 1.55);pointer-events:auto;max-width:300px}
+.toast.show{transform:translateX(0);opacity:1}
+.toast.success{border-left-color:var(--green);color:var(--green);background:#f0fdf4}
+.toast.error{border-left-color:var(--red);color:var(--red);background:#fef2f2}
+
+.notice{background:#fff8e8;border:1px solid #efdb9f;border-radius:9px;padding:12px;font-size:12px;line-height:1.5}
+.signature{width:100%;height:140px;border:1px dashed #9aabba;border-radius:8px;touch-action:none;background:#fafbfc}
+.preview{display:flex;gap:8px;flex-wrap:wrap}.preview img{width:120px;height:95px;object-fit:cover;border-radius:7px;border:1px solid var(--line)}
+.photo-item{display:flex;flex-direction:column;gap:5px;align-items:flex-start}.photo-item button{align-self:stretch}
+
+/* Reporte / Informes */
+.report-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;border-bottom:2px solid var(--navy);padding-bottom:12px;text-align:left}
+.report-company{flex:1;min-width:0;text-align:left}.report-company h1{margin:0 0 3px;text-align:left}.report-company-details{font-size:12px;line-height:1.6;text-align:left;overflow-wrap:anywhere}
+.report-title{min-width:210px;text-align:right}.report-title h1{text-align:right}.report-title .pill{margin-top:8px}
+.report-head h1{font-size:21px;margin:0}.report-section{margin:17px 0;break-inside:avoid}.report-section h3{border-bottom:1px solid #ccd5df;padding-bottom:6px;margin:0 0 9px}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px}.report-grid p{margin:4px 0;font-size:13px}
+.report-photos{display:flex;flex-wrap:wrap;gap:10px}.report-photos img{max-width:180px;max-height:150px;object-fit:contain}
+.empty{padding:20px;text-align:center;color:var(--muted);font-size:13px}
+footer{text-align:center;color:#78879a;font-size:11px;padding:24px}
+
+/* Responsivo: Convertir Tablas en Tarjetas en el Celular */
+@media(max-width: 768px) {
+  main{padding:0 9px;margin:12px auto}.grid,.grid.three,.split{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.card{padding:14px}.report-grid{grid-template-columns:1fr}header{padding:13px}.brand h1{font-size:16px}
+  .report-head{flex-direction:column}.report-title{min-width:0;width:100%;text-align:left}.report-title h1{text-align:left}
+  
+  /* Tablas se vuelven tarjetas */
+  table, thead, tbody, th, td, tr { display: block; }
+  thead tr { position: absolute; top: -9999px; left: -9999px; }
+  tr { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 12px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,.02); background:#fff; }
+  td { border: none; border-bottom: 1px solid #f0f4f8; position: relative; padding: 10px 10px 10px 40%; min-height: 40px; }
+  td:last-child { border-bottom: 0; }
+  td:before { position: absolute; top: 12px; left: 10px; width: 35%; padding-right: 10px; white-space: nowrap; font-weight: 700; font-size: 11px; color: var(--muted); text-transform: uppercase; content: attr(data-label); }
+}
+
+@media print{body{background:white}header,.tabs,.no-print,footer,#toast-container{display:none!important}main{margin:0;padding:0;max-width:none}.card{border:0;padding:0;box-shadow:none}.report-head h1{font-size:22px}.report-section{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div id="toast-container"></div>
+<header>
+  <div class="brand">
+    <div class="logo">N24SE</div>
+    <div>
+      <h1>N24SE · Gestión de Visitas Técnicas</h1>
+      <p>Seguridad Electrónica · CCTV, Control de Acceso, Automatización</p>
+    </div>
+  </div>
+  <div class="userline">
+    <span id="userBadge" class="muted" style="color:#e1eaf4"></span>
+    <button id="logoutBtn" class="secondary hidden" onclick="logout()">Cerrar sesión</button>
+  </div>
+</header>
+
+<main>
+  <!-- LOGIN -->
+  <section id="loginScreen" class="card login">
+    <h2>Ingreso al sistema</h2>
+    <p class="muted">Acceso para administración y técnicos.</p>
+    <form id="loginForm">
+      <div class="field">
+        <label>Correo</label>
+        <input id="loginUser" type="email" required autocomplete="username" placeholder="admin@n24se.local">
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label>Contraseña</label>
+        <input id="loginPass" type="password" required autocomplete="current-password">
+      </div>
+      <button style="width:100%;margin-top:16px">Ingresar</button>
+    </form>
+    <div class="notice" style="margin-top:16px">
+      Ingrese con el correo y contraseña registrados en Supabase Auth.<br>
+      Para crear usuarios nuevos vaya al Dashboard → Authentication → Users.
+    </div>
+  </section>
+
+  <!-- APP -->
+  <section id="appScreen" class="hidden">
+    <div class="stats">
+      <div class="stat"><span class="muted">Solicitudes totales</span><strong id="statTotal">0</strong></div>
+      <div class="stat"><span class="muted">Por asignar</span><strong id="statAssign">0</strong></div>
+      <div class="stat"><span class="muted">Asignadas / aceptadas</span><strong id="statAssigned">0</strong></div>
+      <div class="stat"><span class="muted">Cerradas</span><strong id="statClosed">0</strong></div>
+    </div>
+
+    <nav class="tabs no-print" id="tabs">
+      <button data-tab="intakeTab" onclick="showTab('intakeTab',this)">＋ Nueva solicitud</button>
+      <button data-tab="queueTab" onclick="showTab('queueTab',this)">Solicitudes y asignación</button>
+      <button data-tab="techTab" onclick="showTab('techTab',this)">Mis Visitas</button>
+      <button data-tab="historyTab" onclick="showTab('historyTab',this)">Historial / informes</button>
+      <button id="quotesTabButton" data-tab="quotesTab" onclick="showTab('quotesTab',this)">Cotizaciones</button>
+      <button id="usersTabButton" data-tab="usersTab" onclick="showTab('usersTab',this)">Usuarios</button>
+      <button data-tab="settingsTab" onclick="showTab('settingsTab',this)">Empresa</button>
+    </nav>
+
+    <!-- INTAKE -->
+    <section id="intakeTab" class="card hidden">
+      <h2>Crear solicitud de servicio</h2>
+      <p class="muted">Primera captura para atención telefónica. El informe técnico se diligencia después de aceptar la visita.</p>
+      <form id="intakeForm">
+        <input type="hidden" id="intakeId">
+        <h3>1. Datos de la solicitud</h3>
+        <div class="grid">
+          <div><label>Fecha de solicitud *</label><input id="reqDate" type="date" required></div>
+          <div><label>Medio de recepción</label>
+            <select id="reqChannel">
+              <option>Llamada telefónica</option><option>WhatsApp</option><option>Correo electrónico</option><option>Presencial</option><option>Otro</option>
+            </select>
+          </div>
+          <div><label>Nombre del cliente / empresa *</label><input id="reqClient" required placeholder="Empresa, edificio o persona"></div>
+          <div><label>NIT (si aplica)</label><input id="reqNit" placeholder="NIT del cliente"></div>
+          <div><label>Persona que solicita *</label><input id="reqContact" required placeholder="Nombre del contacto"></div>
+          <div><label>Teléfono / correo *</label><input id="reqContactInfo" required placeholder="Teléfono o correo"></div>
+          <div><label>Sede / copropiedad</label><input id="reqSite" placeholder="Nombre de la sede, torre o conjunto"></div>
+          <div><label>Dirección del servicio *</label><input id="reqAddress" required placeholder="Dirección y ciudad"></div>
+        </div>
+        <h3>2. Necesidad del cliente</h3>
+        <div class="grid">
+          <div><label>Tipo de servicio requerido *</label>
+            <select id="reqType" required>
+              <option value="">Seleccione...</option>
+              <option>Diagnóstico</option><option>Mantenimiento preventivo</option><option>Mantenimiento correctivo</option>
+              <option>Instalación / ampliación</option><option>Garantía</option><option>Inspección / asesoría</option>
+            </select>
+          </div>
+          <div><label>Sistema relacionado *</label>
+            <select id="reqSystem" required>
+              <option value="">Seleccione...</option>
+              <option>CCTV / Videovigilancia</option><option>Alarmas de intrusión</option><option>Control de acceso</option>
+              <option>Talanquera / control vehicular</option><option>Puertas automáticas</option><option>Cerca eléctrica</option>
+              <option>Citofonía</option><option>Redes / cableado</option><option>Otro / por confirmar</option>
+            </select>
+          </div>
+          <div class="full"><label>Falla o necesidad reportada por el cliente *</label>
+            <textarea id="reqProblem" required placeholder="Describa qué ocurre, desde cuándo y qué equipo o zona está afectada."></textarea>
+          </div>
+          <div><label>Prioridad inicial</label>
+            <select id="reqPriority"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
+          </div>
+          <div><label>Disponibilidad / horario preferido</label><input id="reqAvailability" placeholder="Ej. lunes a viernes, 8 a. m. a 12 m."></div>
+          <div class="full"><label>Notas para coordinación</label>
+            <textarea id="reqNotes" placeholder="Acceso, persona que autoriza ingreso, restricciones, etc."></textarea>
+          </div>
+        </div>
+        <div class="toolbar no-print" style="margin-top:20px">
+          <button>Guardar solicitud</button>
+          <button type="button" class="secondary" onclick="resetIntake()">Limpiar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- QUEUE -->
+    <section id="queueTab" class="card hidden">
+      <div class="toolbar" style="justify-content:space-between">
+        <div>
+          <h2 style="margin-bottom:4px">Solicitudes y asignación</h2>
+          <p class="muted" style="margin:0">La oficina asigna el servicio a un técnico. La visita pasa a ejecución cuando el técnico la acepta.</p>
+        </div>
+        <button class="secondary no-print" onclick="refreshData()">Actualizar</button>
+      </div>
+      <div class="tablewrap" style="margin-top:15px">
+        <table>
+          <thead><tr><th>N.º / fecha</th><th>Cliente y necesidad</th><th>Prioridad</th><th>Asignar técnico</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="queueRows"></tbody>
+        </table>
+      </div>
+      <div id="queueEmpty" class="empty hidden">No hay solicitudes para mostrar.</div>
+    </section>
+
+    <!-- TECH -->
+    <section id="techTab" class="card hidden">
+      <h2>Mis Visitas</h2>
+      <p class="muted">Acepte una visita para habilitar el informe técnico.</p>
+      <div id="techVisits"></div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="historyTab" class="card hidden">
+      <div class="toolbar" style="justify-content:space-between">
+        <div>
+          <h2 style="margin:0">Historial de servicios</h2>
+          <p class="muted" style="margin:5px 0 0">Los servicios cerrados y cancelados permanecen aquí.</p>
+        </div>
+        <button class="secondary no-print" onclick="exportBackup()">Exportar respaldo</button>
+      </div>
+      <div class="grid" style="margin:15px 0">
+        <div><label>Buscar</label><input id="historySearch" oninput="renderHistory()" placeholder="Número, cliente, técnico, dirección..."></div>
+        <div><label>Filtrar por estado</label>
+          <select id="historyFilter" onchange="renderHistory()">
+            <option value="">Todos</option><option>Por asignar</option><option>Asignada</option><option>Aceptada</option>
+            <option>En ejecución</option><option>Pendiente de cotización</option><option>Cerrada</option><option>Cancelada</option>
+          </select>
+        </div>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>N.º</th><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Técnico</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="historyRows"></tbody>
+        </table>
+      </div>
+      <p id="historyEmpty" class="empty hidden">No hay registros coincidentes.</p>
+    </section>
+
+    <!-- QUOTES -->
+    <section id="quotesTab" class="card hidden">
+      <div class="toolbar" style="justify-content:space-between">
+        <div>
+          <h2 style="margin:0">Cotizaciones comerciales</h2>
+          <p class="muted" style="margin:5px 0 0">Cree propuestas, calcule totales y genere PDF.</p>
+        </div>
+        <button onclick="newQuote()">＋ Nueva cotización</button>
+      </div>
+      <div id="quoteList" style="margin-top:16px"></div>
+
+      <div id="quoteEditor" class="hidden" style="margin-top:18px">
+        <div class="toolbar" style="justify-content:space-between">
+          <h2 id="quoteEditorTitle">Nueva cotización</h2>
+          <button class="secondary" onclick="closeQuoteEditor()">Volver al listado</button>
+        </div>
+        <form id="quoteForm">
+          <input type="hidden" id="qId">
+          <input type="hidden" id="qServiceId">
+          <div class="grid three">
+            <div><label>Número de cotización</label><input id="qNumber" readonly placeholder="Se asigna al guardar"></div>
+            <div><label>Fecha</label><input id="qDate" type="date" required></div>
+            <div><label>Validez (días)</label><input id="qValidity" type="number" min="1" value="15" required></div>
+            <div><label>Cliente / empresa *</label><input id="qClient" required></div>
+            <div><label>NIT / Cédula</label><input id="qNit"></div>
+            <div><label>Persona de contacto</label><input id="qContact"></div>
+            <div><label>Teléfono</label><input id="qPhone"></div>
+            <div><label>Correo</label><input id="qEmail" type="email"></div>
+            <div><label>Ciudad / dirección</label><input id="qAddress"></div>
+            <div class="full"><label>Asunto / necesidad del cliente</label><input id="qSubject" placeholder="Ej. Suministro e instalación de control de acceso"></div>
+            <div><label>Técnico que elaboró / atiende</label><input id="qTechnician" placeholder="Nombre del técnico"></div>
+          </div>
+          <h3>Detalle de productos y servicios</h3>
+          <p class="muted">Los valores se calculan automáticamente en pesos colombianos.</p>
+          <div class="tablewrap">
+            <table>
+              <thead><tr>
+                <th style="min-width:260px">Descripción</th>
+                <th style="width:90px">Cantidad</th>
+                <th style="width:150px">Valor unitario</th>
+                <th style="width:150px">Subtotal</th>
+                <th class="no-print">Acción</th>
+              </tr></thead>
+              <tbody id="qItems"></tbody>
+            </table>
+          </div>
+          <div class="toolbar no-print" style="margin-top:10px">
+            <button type="button" class="secondary" onclick="addQuoteItem()">＋ Agregar concepto</button>
+          </div>
+          <div class="grid" style="margin-top:16px">
+            <div>
+              <label>Condiciones comerciales</label>
+              <textarea id="qTerms">Forma de pago: Anticipo de obra.
+La programación está sujeta a disponibilidad y coordinación con el cliente.</textarea>
+              <label style="margin-top:10px">Notas / exclusiones</label>
+              <textarea id="qNotes" placeholder="Garantía, alcance, exclusiones o consideraciones adicionales"></textarea>
+            </div>
+            <div>
+              <div class="grid">
+  <div><label>IVA (%)</label><input id="qTaxRate" type="number" min="0" max="100" step="0.1" value="19" oninput="calcQuoteTotals()"></div>
+  <div><label>Descuento (COP)</label><input id="qDiscount" type="number" min="0" step="1000" value="0" oninput="calcQuoteTotals()"></div>
+  <div>
+    <label>Forma de pago</label>
+    <select id="qPayment">
+      <option value="Efectivo">Efectivo</option>
+      <option value="Transferencia bancaria">Transferencia bancaria</option>
+      <option value="Anticipo de obra" selected>Anticipo de obra</option>
+      <option value="Crédito 30 días">Crédito 30 días</option>
+      <option value="Crédito 60 días">Crédito 60 días</option>
+      <option value="Contra entrega">Contra entrega</option>
+      <option value="Otro">Otro</option>
+    </select>
+  </div>
+  <div><label>Anticipo (%)</label><input id="qAdvance" type="number" min="0" max="100" value="60" oninput="calcQuoteTotals()"></div>
+</div>
+<div id="qTotals" class="card" style="margin-top:12px;background:#f7f9fc"></div>
+            </div>
+          </div>
+          <div class="toolbar no-print" style="margin-top:18px">
+            <button type="submit">Guardar cotización</button>
+            <button type="button" class="secondary" onclick="saveAndPrintQuote()">Guardar y generar PDF</button>
+            <button type="button" class="danger" onclick="closeQuoteEditor()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="quotePreview" class="hidden"></div>
+    </section>
+
+    <!-- USERS -->
+    <section id="usersTab" class="card hidden">
+      <h2>Usuarios</h2>
+      <p class="muted">Los usuarios se gestionan desde Supabase Auth.</p>
+      <div class="notice" style="margin-top:12px">
+        <b>Crear / eliminar usuarios</b><br>
+        1. Ve al Dashboard de Supabase → <b>Authentication → Users → Add user</b>.<br>
+        2. En <b>User Metadata</b> agrega: <code>{ "full_name": "Nombre completo", "role": "admin" | "technician" }</code>.<br>
+        3. El perfil se crea automáticamente. Los técnicos aparecen en la cola de asignación.
+      </div>
+      <div class="tablewrap" style="margin-top:18px">
+        <table>
+          <thead><tr><th>Nombre</th><th>ID (Supabase)</th><th>Rol</th><th>Acción</th></tr></thead>
+          <tbody id="usersRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settingsTab" class="card hidden">
+      <h2>Datos de la empresa</h2>
+      <form id="settingsForm" class="grid">
+        <div><label>Nombre de empresa</label><input id="companyName"></div>
+        <div><label>NIT</label><input id="companyNit"></div>
+        <div><label>Teléfono</label><input id="companyPhone"></div>
+        <div><label>Correo</label><input id="companyEmail"></div>
+        <div class="full"><label>Dirección</label><input id="companyAddress"></div>
+        <div class="full"><label>Pie de página del informe</label><input id="companyFooter"></div>
+        <div class="full"><button>Guardar datos</button></div>
+      </form>
+      <div class="notice" style="margin-top:18px">
+        <b>Backend activo:</b> Supabase (Postgres + Auth + Storage). La información se sincroniza entre dispositivos.
+      </div>
+    </section>
+  </section>
+
+  <section id="detailView" class="card hidden"></section>
+  <section id="reportView" class="card hidden"></section>
+</main>
+
+<footer>Flujo de solicitud → asignación → aceptación → informe técnico → cierre · v2 Supabase</footer>
+
+<script>
+/* ============================================================
+   N24SE · App (Supabase)
+   ============================================================ */
+
+/* --- CONFIGURA AQUÍ TUS CREDENCIALES DE SUPABASE --- */
+const SUPABASE_URL      = 'https://isudtsmppacageivwesj.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzdWR0c21wcGFjYWdlaXZ3ZXNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMTA5MzEsImV4cCI6MjEwODU4NjkzMX0.nFrfOqRvbgkX3R9QXmbXfrr1vsjGC1UJBxVcSY6ekfg';
+/* --------------------------------------------------- */
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+});
+function showToast(mensaje, tipo = 'success') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  
+  const toast = document.createElement('div');
+  toast.className = `toast ${tipo}`;
+  // Iconos simples según el tipo
+  const icon = tipo === 'success' ? '✅' : tipo === 'error' ? '❌' : 'ℹ️';
+  toast.innerHTML = `<span>${icon}</span> <span>${mensaje}</span>`;
+  
+  container.appendChild(toast);
+  
+  // Pequeño delay para la animación
+  setTimeout(() => toast.classList.add('show'), 10);
+  
+  // Remover después de 4 segundos
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
+/* ---------- Helpers DOM ---------- */
+const $  = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
+  {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money   = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-CO');
+const today   = () => new Date().toISOString().slice(0, 10);
+const pair    = (k, v) => `<p><span style="color:#667">${esc(k)}:</span> <b>${esc(v || '—')}</b></p>`;
+const para    = (k, v) => `<div style="margin:10px 0"><b>${esc(k)}</b><p style="white-space:pre-wrap;font-size:13px;margin:4px 0">${esc(v || '—')}</p></div>`;
+
+/* ---------- Estado ---------- */
+let me                = null;
+let services          = [];
+let technicians       = [];
+let currentTab        = 'queueTab';
+let currentServiceId  = null;
+let reportPhotos      = [];
+let deletedPhotos     = [];
+let pendingSignatures = { tech: null, client: null };
+let realtimeChannel   = null;
+let quotesCache       = [];
+let cfgCache          = null;
+
+/* ============================================================
+   CLIENTE SUPABASE · Auth
+   ============================================================ */
+async function sbSignIn(email, password) {
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+}
+async function sbSignOut() { await sb.auth.signOut(); }
+async function sbGetProfile() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/* ============================================================
+   CLIENTE SUPABASE · Services
+   ============================================================ */
+async function sbListServices() {
+  const { data, error } = await sb.from('services').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+async function sbGetService(id) {
+  const { data, error } = await sb.from('services').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+async function sbCreateService(payload) {
+  const { data, error } = await sb.from('services').insert(payload).select().single();
+  if (error) throw error;
+  return data;
+}
+async function sbUpdateService(id, patch) {
+  const { data, error } = await sb.from('services').update(patch).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+async function sbCancelService(id, reason) {
+  const { data: { user } } = await sb.auth.getUser();
+  const { data, error } = await sb.from('services').update({
+    status: 'Cancelada',
+    cancelled_at: new Date().toISOString(),
+    cancelled_by: user.id,
+    cancel_reason: reason || 'Cancelado por administración'
+  }).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+async function sbAssignService(serviceId, technicianId) {
+  const { data, error } = await sb.rpc('assign_service', { p_service_id: serviceId, p_technician_id: technicianId });
+  if (error) throw error;
+  return data;
+}
+async function sbAcceptService(serviceId) {
+  const { data, error } = await sb.rpc('accept_service', { p_service_id: serviceId });
+  if (error) throw error;
+  return data;
+}
+
+/* ============================================================
+   CLIENTE SUPABASE · Profiles
+   ============================================================ */
+async function sbListTechnicians() {
+  const { data, error } = await sb.from('profiles').select('*').eq('role', 'technician').eq('active', true).order('full_name');
+  if (error) throw error;
+  return data || [];
+}
+async function sbListProfiles() {
+  const { data, error } = await sb.from('profiles').select('*').order('full_name');
+  if (error) throw error;
+  return data || [];
+}
+async function sbUpdateProfile(id, patch) {
+  const { data, error } = await sb.from('profiles').update(patch).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+/* ============================================================
+   CLIENTE SUPABASE · Reports
+   ============================================================ */
+async function sbGetReport(serviceId) {
+  const { data, error } = await sb.from('service_reports').select('*').eq('service_id', serviceId).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+async function sbUpsertReport(serviceId, payload) {
+  const { data, error } = await sb.from('service_reports')
+    .upsert({ service_id: serviceId, ...payload }, { onConflict: 'service_id' })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+
+/* ============================================================
+   CLIENTE SUPABASE · Photos
+   ============================================================ */
+async function sbListPhotos(reportId) {
+  const { data, error } = await sb.from('report_photos').select('*').eq('report_id', reportId).order('sort_order');
+  if (error) throw error;
+  return data || [];
+}
+async function sbUploadPhoto(serviceId, file) {
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${serviceId}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await sb.storage.from('report-photos').upload(path, file, {
+    contentType: file.type || 'image/jpeg', upsert: false
+  });
+  if (error) throw error;
+  return path;
+}
+async function sbInsertPhoto(reportId, path, sortOrder) {
+  const { data, error } = await sb.from('report_photos').insert({
+    report_id: reportId, storage_path: path, sort_order: sortOrder
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+async function sbDeletePhotoRow(id) {
+  const { error } = await sb.from('report_photos').delete().eq('id', id);
+  if (error) throw error;
+}
+async function sbSignedUrl(bucket, path, expires = 3600) {
+  if (!path) return null;
+  const { data, error } = await sb.storage.from(bucket).createSignedUrl(path, expires);
+  if (error) return null;
+  return data.signedUrl;
+}
+async function sbDeleteFile(bucket, path) {
+  if (!path) return;
+  await sb.storage.from(bucket).remove([path]);
+}
+
+/* ============================================================
+   CLIENTE SUPABASE · Signatures
+   ============================================================ */
+async function sbUploadSignature(serviceId, slot, dataUrl) {
+  const resp = await fetch(dataUrl);
+  const blob = await resp.blob();
+  const path = `${serviceId}/${slot}.png`;
+  const { error } = await sb.storage.from('signatures').upload(path, blob, {
+    contentType: 'image/png', upsert: true
+  });
+  if (error) throw error;
+  return path;
+}
+
+/* ============================================================
+   CLIENTE SUPABASE · Quotes
+   ============================================================ */
+async function sbListQuotes() {
+  const { data, error } = await sb.from('quotes').select('*').order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+async function sbGetQuote(id) {
+  const { data, error } = await sb.from('quotes').select('*, quote_items(*)').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+async function sbGetQuoteItems(quoteId) {
+  const { data, error } = await sb.from('quote_items').select('*').eq('quote_id', quoteId).order('sort_order');
+  if (error) throw error;
+  return data || [];
+}
+async function sbSaveQuote(quote, items) {
+  const { data, error } = await sb.rpc('save_quote', { p_quote: quote, p_items: items });
+  if (error) throw error;
+  return data;
+}
+async function sbMarkQuoteSent(id) {
+  const { error } = await sb.rpc('mark_quote_sent', { p_quote_id: id });
+  if (error) throw error;
+}
+
+/* ============================================================
+   CLIENTE SUPABASE · Company
+   ============================================================ */
+async function sbGetCompany() {
+  const { data, error } = await sb.from('company_settings').select('*').eq('id', 1).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+async function sbSaveCompany(patch) {
+  const { data, error } = await sb.from('company_settings').update(patch).eq('id', 1).select().single();
+  if (error) throw error;
+  return data;
+}
+
+/* ============================================================
+   CLIENTE SUPABASE · Realtime
+   ============================================================ */
+function sbSubscribeServices(onChange) {
+  return sb.channel('n24-services')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, onChange)
+    .subscribe();
+}
+
+/* ============================================================
+   BOOTSTRAP
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', init);
+
+async function init() {
+  $('reqDate').value = today();
+
+  // listeners de formularios
+  $('loginForm').addEventListener('submit', login);
+  $('intakeForm').addEventListener('submit', saveIntake);
+  $('settingsForm').addEventListener('submit', saveSettings);
+  $('quoteForm').addEventListener('submit', saveQuote);
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) await startApp();
+  } catch (err) { console.error(err); }
+
+  sb.auth.onAuthStateChange(event => {
+    if (event === 'SIGNED_OUT') location.reload();
+  });
+}
+
+async function startApp() {
+  try {
+    me = await sbGetProfile();
+    if (!me || !me.active) { await sbSignOut(); return; }
+
+    $('loginScreen').classList.add('hidden');
+    $('appScreen').classList.remove('hidden');
+    $('logoutBtn').classList.remove('hidden');
+    $('userBadge').textContent = me.full_name + ' · ' + (me.role === 'admin' ? 'Administrador' : 'Técnico');
+
+    document.querySelector('[data-tab="intakeTab"]').classList.toggle('hidden', me.role !== 'admin');
+    document.querySelector('[data-tab="queueTab"]').classList.toggle('hidden', me.role !== 'admin');
+    $('usersTabButton').classList.toggle('hidden', me.role !== 'admin');
+    document.querySelector('[data-tab="settingsTab"]').classList.toggle('hidden', me.role !== 'admin');
+
+    await loadCfg();
+    await refreshData();
+    subscribeRealtime();
+
+    const startTab = me.role === 'admin' ? 'queueTab' : 'techTab';
+    showTab(startTab, document.querySelector(`[data-tab="${startTab}"]`));
+  } catch (err) {
+    console.error(err);
+    showToast('Error al iniciar la app: ' + err.message, 'error');
+  }
+}
+
+async function login(e) {
+  e.preventDefault();
+  try {
+    await sbSignIn($('loginUser').value.trim(), $('loginPass').value);
+    await startApp();
+  } catch (err) {
+    showToast('Error: ' + (err.message || 'Verifique credenciales.'), 'error');
+  }
+}
+
+async function logout() {
+  await sbSignOut();
+}
+
+/* ============================================================
+   DATOS / REFRESH
+   ============================================================ */
+async function refreshData() {
+  services = await sbListServices();
+  if (me?.role === 'admin') technicians = await sbListTechnicians();
+  renderAll();
+}
+
+function subscribeRealtime() {
+  if (realtimeChannel) sb.removeChannel(realtimeChannel);
+  realtimeChannel = sbSubscribeServices(async () => {
+    services = await sbListServices();
+    renderAll();
+  });
+}
+
+// --- Refresco automático al volver a la app (móviles) ---
+document.addEventListener('visibilitychange', async () => {
+  // Si el usuario vuelve a la pestaña/app y está logueado
+  if (document.visibilityState === 'visible' && me) {
+    console.log('App reactivada: actualizando datos...');
+    try {
+      await refreshData();
+      if (currentTab === 'techTab') renderTech();
+      if (currentTab === 'queueTab') renderQueue();
+    } catch (e) {
+      console.error('Error al refrescar:', e);
+    }
+  }
+});
+
+// --- Refresco silencioso cada 60 segundos (por si acaso) ---
+setInterval(async () => {
+  if (me && document.visibilityState === 'visible') {
+    try {
+      await refreshData();
+    } catch (e) {
+      console.error('Error en auto-refresco:', e);
+    }
+  }
+}, 60000);
+function techName(id) {
+  if (!id) return '';
+  if (me && id === me.id) return me.full_name;
+  const t = technicians.find(x => x.id === id);
+  return t ? t.full_name : '';
+}
+
+/* ============================================================
+   RENDER PRINCIPAL
+   ============================================================ */
+function renderAll() {
+  $('statTotal').textContent    = services.length;
+  $('statAssign').textContent   = services.filter(x => x.status === 'Por asignar').length;
+  $('statAssigned').textContent = services.filter(x => ['Asignada','Aceptada','En ejecución','Pendiente de cotización'].includes(x.status)).length;
+  $('statClosed').textContent   = services.filter(x => x.status === 'Cerrada').length;
+  renderQueue();
+  renderTech();
+  renderHistory();
+}
+
+function statusPill(s) {
+  const c = s === 'Cerrada' ? 'green'
+          : s === 'Cancelada' ? 'red'
+          : (['Por asignar','Pendiente de cotización'].includes(s) ? 'amber' : 'blue');
+  return `<span class="pill ${c}">${esc(s)}</span>`;
+}
+
+function renderQueue() {
+  const visible = services.filter(r => !['Cerrada','Cancelada'].includes(r.status));
+  $('queueRows').innerHTML = visible.map(r => `
+    <tr>
+      <td data-label="N.º / fecha"><b>${esc(r.number)}</b>...</td>
+      <td><b>${esc(r.client)}</b><br>${esc(r.service_type)} · ${esc(r.system_type)}<br>
+          <span class="muted">${esc((r.problem || '').slice(0,100))}</span></td>
+      <td>${esc(r.priority)}</td>
+      <td>${me?.role === 'admin' ? `
+        <div>
+          <b>${esc(techName(r.assigned_to) || 'Sin asignar')}</b>
+          <select id="assign-${r.id}" style="min-width:150px;margin-top:5px">
+            <option value="">${r.assigned_to ? 'Cambiar técnico' : 'Seleccionar técnico'}</option>
+            ${technicians.map(t => `<option value="${t.id}" ${r.assigned_to === t.id ? 'selected' : ''}>${esc(t.full_name)}</option>`).join('')}
+          </select>
+          <button class="small" style="margin-top:5px" onclick="assignVisit('${r.id}')">${r.assigned_to ? 'Guardar asignación' : 'Asignar visita'}</button>
+        </div>` : esc(techName(r.assigned_to) || '—')}</td>
+      <td>${statusPill(r.status)}</td>
+      <td>
+        <div class="toolbar">
+          ${me?.role === 'admin' ? `
+            <button class="small secondary" onclick="viewRequest('${r.id}')">Ver solicitud</button>
+            <button class="small secondary" onclick="editIntake('${r.id}')">Editar</button>
+            <button class="small danger" onclick="cancelVisit('${r.id}')">Cancelar</button>
+            ${['Aceptada','En ejecución','Pendiente de cotización'].includes(r.status)
+              ? `<button class="small" onclick="openDetails('${r.id}')">Abrir informe</button>` : ''}
+            ${r.status === 'Pendiente de cotización'
+              ? `<button class="small success" onclick="newQuote('${r.id}')">Crear cotización</button>` : ''}
+          ` : ''}
+        </div>
+      </td>
+    </tr>`).join('');
+  $('queueEmpty').textContent = 'No hay solicitudes activas.';
+  $('queueEmpty').classList.toggle('hidden', visible.length > 0);
+}
+
+function renderTech() {
+  const mine = services.filter(r => {
+    if (!me) return false;
+    if (me.role === 'admin') return !['Cerrada','Cancelada'].includes(r.status);
+    return r.assigned_to === me.id && !['Cerrada','Cancelada'].includes(r.status);
+  });
+  $('techVisits').innerHTML = mine.length ? mine.map(r => `
+    <div class="card" style="margin:12px 0;padding:14px">
+      <div class="toolbar" style="justify-content:space-between">
+        <div>
+          <b>${esc(r.number)} · ${esc(r.client)}</b>
+          <div class="muted">${esc(r.requested_at)} · ${esc(r.service_type)} · ${esc(r.system_type)}</div>
+        </div>
+        ${statusPill(r.status)}
+      </div>
+      <p style="font-size:13px">${esc(r.problem)}</p>
+      <p class="muted">Dirección: ${esc(r.address)} · Prioridad: ${esc(r.priority)} · Técnico: ${esc(techName(r.assigned_to) || 'Sin asignar')}</p>
+      <div class="toolbar">
+        ${r.status === 'Asignada' && me?.role === 'technician'
+          ? `<button onclick="acceptVisit('${r.id}')">Aceptar visita</button>` : ''}
+        ${(['Aceptada','En ejecución','Pendiente de cotización'].includes(r.status) && (me?.role === 'admin' || r.assigned_to === me.id))
+          ? `<button onclick="openDetails('${r.id}')">Continuar informe</button>` : ''}
+        ${r.status === 'Pendiente de cotización' && me?.role === 'technician' && r.assigned_to === me.id
+          ? `<button class="success" onclick="newQuote('${r.id}')">Preparar cotización</button>` : ''}
+        <button class="secondary" onclick="viewRequest('${r.id}')">Ver solicitud</button>
+        <button class="secondary" onclick="viewReport('${r.id}')">Ver informe / PDF</button>
+      </div>
+    </div>`).join('') : '<div class="empty">No tienes visitas activas asignadas.</div>';
+}
+
+function renderHistory() {
+  const q = ($('historySearch')?.value || '').toLowerCase();
+  const f = $('historyFilter')?.value || '';
+  let base = services;
+  if (me?.role === 'technician') base = base.filter(r => r.assigned_to === me.id);
+  const a = base.filter(r =>
+    (!f || r.status === f) &&
+    [r.number, r.client, r.address, r.service_type, r.system_type, r.problem, r.status]
+      .join(' ').toLowerCase().includes(q)
+  );
+  $('historyRows').innerHTML = a.map(r => `
+    <tr>
+      <td><b>${esc(r.number)}</b></td>
+      <td>${esc(r.requested_at)}</td>
+      <td>${esc(r.client)}</td>
+      <td>${esc(r.service_type)}</td>
+      <td>${esc(techName(r.assigned_to) || '—')}</td>
+      <td>${statusPill(r.status)}</td>
+      <td>
+        <div class="toolbar">
+          <button class="small secondary" onclick="viewRequest('${r.id}')">Solicitud</button>
+          <button class="small" onclick="viewReport('${r.id}')">Informe / PDF</button>
+        </div>
+      </td>
+    </tr>`).join('');
+  $('historyEmpty').classList.toggle('hidden', a.length > 0);
+}
+
+/* ============================================================
+   INTAKE (crear / editar solicitud)
+   ============================================================ */
+function resetIntake() {
+  $('intakeForm').reset();
+  $('intakeId').value = '';
+  $('reqDate').value = today();
+}
+
+async function saveIntake(e) {
+  e.preventDefault();
+  if (me.role !== 'admin') return;
+
+  const payload = {
+    requested_at: $('reqDate').value,
+    channel:      $('reqChannel').value,
+    client:       $('reqClient').value.trim(),
+    client_nit:   $('reqNit').value.trim(),
+    contact:      $('reqContact').value.trim(),
+    contact_info: $('reqContactInfo').value.trim(),
+    site:         $('reqSite').value.trim(),
+    address:      $('reqAddress').value.trim(),
+    service_type: $('reqType').value,
+    system_type:  $('reqSystem').value,
+    problem:      $('reqProblem').value.trim(),
+    priority:     $('reqPriority').value,
+    availability: $('reqAvailability').value.trim(),
+    notes:        $('reqNotes').value.trim()
+  };
+
+  try {
+    const id = $('intakeId').value;
+    if (id) {
+      await sbUpdateService(id, payload);
+      showToast('Solicitud actualizada correctamente.', 'success');
+    } else {
+      const { data: { user } } = await sb.auth.getUser();
+      await sbCreateService({ ...payload, created_by: user.id });
+      showToast('Solicitud creada exitosamente.', 'success');
+    }
+    resetIntake();
+    await refreshData();
+    showTab('queueTab', document.querySelector('[data-tab="queueTab"]'));
+  } catch (err) {
+   showToast('Error al guardar: ' + err.message, 'error');
+  }
+}
+
+function editIntake(id) {
+  const r = services.find(x => x.id === id);
+  if (!r || me.role !== 'admin') return;
+  if (!['Por asignar','Asignada'].includes(r.status)) {
+    showToast('Solo puedes editar solicitudes sin aceptar.', 'error');
+    return;
+  }
+  showTab('intakeTab', document.querySelector('[data-tab="intakeTab"]'));
+  $('intakeId').value        = r.id;
+  $('reqDate').value         = r.requested_at || today();
+  $('reqChannel').value      = r.channel || 'Llamada telefónica';
+  $('reqClient').value       = r.client || '';
+  $('reqNit').value          = r.client_nit || '';
+  $('reqContact').value      = r.contact || '';
+  $('reqContactInfo').value  = r.contact_info || '';
+  $('reqSite').value         = r.site || '';
+  $('reqAddress').value      = r.address || '';
+  $('reqType').value         = r.service_type || '';
+  $('reqSystem').value       = r.system_type || '';
+  $('reqProblem').value      = r.problem || '';
+  $('reqPriority').value     = r.priority || 'Normal';
+  $('reqAvailability').value = r.availability || '';
+  $('reqNotes').value        = r.notes || '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ============================================================
+   ASIGNAR / ACEPTAR / CANCELAR
+   ============================================================ */
+async function assignVisit(id) {
+  const techId = $('assign-' + id)?.value;
+  if (!techId) { showToast('Por favor, selecciona un técnico.', 'error'); return; }
+  try {
+    await sbAssignService(id, techId);
+    await refreshData();
+    showToast('Visita asignada al técnico con éxito.', 'success');
+  } catch (err) {
+    showToast('Error al asignar: ' + err.message, 'error');
+  }
+}
+
+async function acceptVisit(id) {
+  if (!confirm('¿Aceptas ejecutar esta visita?')) return;
+  try {
+    await sbAcceptService(id);
+    await refreshData();
+    await openDetails(id);
+  } catch (err) {
+    showToast('Error al aceptar visita: ' + err.message, 'error');
+  }
+}
+
+async function cancelVisit(id) {
+  if (me?.role !== 'admin') { showToast('Solo administración puede cancelar.', 'error'); return; }
+  const r = services.find(x => x.id === id);
+  if (!r) return;
+  if (!confirm(`¿Cancelar el servicio ${r.number}?`)) return;
+  try {
+    await sbCancelService(id);
+    await refreshData();
+    showToast('Servicio cancelado correctamente.', 'success');
+  } catch (err) {
+    showToast('Error al cancelar: ' + err.message, 'error');
+  }
+}
+
+/* ============================================================
+   VER SOLICITUD
+   ============================================================ */
+function viewRequest(id) {
+  const r = services.find(x => x.id === id);
+  if (!r) return;
+  if (me.role === 'technician' && r.assigned_to !== me.id) {
+    alert('No tienes permiso para consultar servicios de otro técnico.'); return;
+  }
+  const returnTab = currentTab;
+  $('appScreen').classList.add('hidden');
+  $('detailView').classList.remove('hidden');
+  $('detailView').innerHTML = `
+    <div class="toolbar no-print" style="margin-bottom:14px">
+      <button class="secondary" onclick="backToApp('${returnTab}')">Volver</button>
+    </div>
+    <h2>Solicitud ${esc(r.number)}</h2>
+    <div class="report-grid">
+      ${pair('Fecha de solicitud', r.requested_at)}
+      ${pair('Canal', r.channel)}
+      ${pair('Cliente', r.client)}
+      ${pair('NIT', r.client_nit)}
+      ${pair('Contacto', r.contact)}
+      ${pair('Teléfono / correo', r.contact_info)}
+      ${pair('Sede', r.site)}
+      ${pair('Dirección', r.address)}
+      ${pair('Servicio requerido', r.service_type)}
+      ${pair('Sistema', r.system_type)}
+      ${pair('Prioridad', r.priority)}
+      ${pair('Disponibilidad', r.availability)}
+    </div>
+    <div class="report-section">
+      ${para('Falla o necesidad reportada', r.problem)}
+      ${para('Notas de coordinación', r.notes)}
+    </div>
+    <p>Estado: ${statusPill(r.status)} · Técnico: <b>${esc(techName(r.assigned_to) || 'Sin asignar')}</b></p>`;
+}
+
+/* ============================================================
+   INFORME TÉCNICO · abrir
+   ============================================================ */
+async function openDetails(id) {
+  try {
+    const r = await sbGetService(id);
+    if (!r) { alert('No se encontró la visita.'); return; }
+    if (me.role === 'technician' && r.assigned_to !== me.id) {
+      alert('Solo puedes abrir visitas asignadas a tu usuario.'); return;
+    }
+    if (!['Aceptada','En ejecución','Pendiente de cotización'].includes(r.status)) {
+      alert('El informe se habilita después de aceptar la visita.'); return;
+    }
+    if (r.status === 'Aceptada') {
+      await sbUpdateService(id, { status: 'En ejecución' });
+      await refreshData();
+    }
+
+    const report = await sbGetReport(id);
+    let photos = [];
+    if (report) {
+      const rows = await sbListPhotos(report.id);
+      photos = await Promise.all(rows.map(async p => ({
+        id: p.id,
+        path: p.storage_path,
+        url: await sbSignedUrl('report-photos', p.storage_path),
+        isExisting: true
+      })));
+    }
+    const sigTechUrl   = report?.technician_sig_path ? await sbSignedUrl('signatures', report.technician_sig_path) : null;
+    const sigClientUrl = report?.client_sig_path     ? await sbSignedUrl('signatures', report.client_sig_path)     : null;
+
+    currentServiceId  = id;
+    reportPhotos      = photos;
+    deletedPhotos     = [];
+    pendingSignatures = { tech: null, client: null };
+
+    renderDetailForm(r, report, sigTechUrl, sigClientUrl);
+  } catch (err) {
+    console.error(err);
+    alert('Error al abrir informe: ' + err.message);
+  }
+}
+
+function renderDetailForm(r, d, sigTechUrl, sigClientUrl) {
+  d = d || {};
+  $('appScreen').classList.add('hidden');
+  $('reportView').classList.add('hidden');
+  $('detailView').classList.remove('hidden');
+  $('detailView').innerHTML = `
+    <div class="toolbar no-print" style="margin-bottom:16px">
+      <button class="secondary" onclick="backToApp(me.role==='admin'?'queueTab':'techTab')">← Volver</button>
+      <span>${statusPill(r.status)}</span>
+    </div>
+    <h2>Informe técnico · ${esc(r.number)}</h2>
+
+    <div class="notice"><b>Datos originales de la solicitud</b>
+      <div class="report-grid" style="margin-top:8px">
+        ${pair('Fecha de solicitud', r.requested_at)}
+        ${pair('Canal', r.channel)}
+        ${pair('Cliente / empresa', r.client)}
+        ${pair('NIT', r.client_nit)}
+        ${pair('Contacto', r.contact)}
+        ${pair('Teléfono / correo', r.contact_info)}
+        ${pair('Sede', r.site)}
+        ${pair('Dirección', r.address)}
+        ${pair('Tipo de servicio', r.service_type)}
+        ${pair('Sistema', r.system_type)}
+        ${pair('Prioridad', r.priority)}
+        ${pair('Disponibilidad', r.availability)}
+      </div>
+      ${para('Falla reportada', r.problem)}
+      ${para('Notas de coordinación', r.notes)}
+    </div>
+
+    <form id="techReportForm" onsubmit="saveTechReport(event,'${r.id}',false)">
+      <h3>1. Información de atención</h3>
+      <div class="grid">
+        <div><label>Fecha de atención *</label>
+          <input id="fDate" type="date" required value="${esc(d.attended_on || today())}"></div>
+        <div><label>Técnico responsable *</label>
+          <input id="fTech" required value="${esc(d.technician || (me.role === 'technician' ? me.full_name : techName(r.assigned_to)))}" ${me.role === 'technician' ? 'readonly' : ''}></div>
+        <div><label>Nombre de quien atiende en sitio</label>
+          <input id="fContact" value="${esc(d.site_contact || '')}"></div>
+        <div><label>Estado del servicio *</label>
+          <select id="fOutcome" required>
+            <option value="">Seleccione…</option>
+            ${['Solucionado','Solución parcial','No solucionado','Requiere nueva visita']
+              .map(o => `<option ${d.outcome === o ? 'selected' : ''}>${o}</option>`).join('')}
+          </select></div>
+      </div>
+
+      <h3>2. Equipo intervenido</h3>
+      <div class="grid">
+        <div><label>Equipo / ubicación</label><input id="fEquipment" value="${esc(d.equipment || '')}"></div>
+        <div><label>Marca</label><input id="fBrand" value="${esc(d.brand || '')}"></div>
+        <div><label>Modelo / referencia</label><input id="fModel" value="${esc(d.model || '')}"></div>
+        <div><label>Número de serie</label><input id="fSerial" value="${esc(d.serial || '')}"></div>
+      </div>
+
+      <h3>3. Diagnóstico y trabajo ejecutado</h3>
+      <div class="grid">
+        <div class="full"><label>Diagnóstico técnico *</label>
+          <textarea id="fDiagnosis" required>${esc(d.diagnosis || '')}</textarea></div>
+        <div class="full"><label>Actividades realizadas / solución *</label>
+          <textarea id="fWork" required>${esc(d.work_done || '')}</textarea></div>
+        <div class="full"><label>Pruebas realizadas y resultado</label>
+          <textarea id="fTests">${esc(d.tests || '')}</textarea></div>
+        <div class="full"><label>Repuestos / materiales utilizados</label>
+          <textarea id="fMaterials">${esc(d.materials || '')}</textarea></div>
+        <div class="full"><label>Recomendaciones / pendientes</label>
+          <textarea id="fRecommendations">${esc(d.recommendations || '')}</textarea></div>
+      </div>
+
+      <h3>4. Cotización y cobro</h3>
+      <div class="grid">
+        <div><label>¿Se requiere cotización? *</label>
+          <select id="fQuote" required>
+            <option value="">Seleccione…</option>
+            <option value="Sí" ${d.quote_required === 'Sí' ? 'selected' : ''}>Sí</option>
+            <option value="No" ${d.quote_required === 'No' ? 'selected' : ''}>No</option>
+          </select></div>
+        <div><label>¿Se cobra la visita? *</label>
+          <select id="fCharge" required>
+            <option value="">Seleccione…</option>
+            <option value="Sí" ${d.charge_visit === 'Sí' ? 'selected' : ''}>Sí</option>
+            <option value="No" ${d.charge_visit === 'No' ? 'selected' : ''}>No</option>
+          </select></div>
+        <div><label>Valor cobrado (COP)</label>
+          <input id="fAmount" type="number" min="0" step="1000" value="${esc(d.amount || '')}"></div>
+        <div><label>Estado del cobro</label>
+          <select id="fPaid">
+            <option value="">Seleccione…</option>
+            ${['Pendiente','Cobrado','No aplica'].map(o => `<option ${d.payment_status === o ? 'selected' : ''}>${o}</option>`).join('')}
+          </select></div>
+        <div class="full"><label>Detalle de cotización / cobro</label>
+          <textarea id="fQuoteNotes">${esc(d.quote_notes || '')}</textarea></div>
+      </div>
+
+      <h3>5. Fotografías de evidencia</h3>
+      <p class="muted">Máximo 10 fotos. Se suben automáticamente al guardar el informe.</p>
+      <input id="fPhotos" type="file" accept="image/*" multiple hidden>
+      <div class="toolbar no-print">
+        <button type="button" onclick="document.getElementById('fPhotos').click()">＋ Agregar imágenes</button>
+        <span id="fPhotoCount" class="muted">${reportPhotos.length} de 10 fotos</span>
+      </div>
+      <div id="fPhotoPreview" class="preview" style="margin-top:8px"></div>
+
+      <h3>6. Firmas y conformidad</h3>
+      <div class="grid">
+        <div><label>Nombre de quien recibe</label><input id="fReceived" value="${esc(d.received_by || '')}"></div>
+        <div><label>Observaciones del cliente</label><input id="fClientNotes" value="${esc(d.client_notes || '')}"></div>
+        <div><label>Firma del técnico</label>
+          <canvas id="sigTech" class="signature"></canvas>
+          <button type="button" class="secondary small" onclick="clearSig('sigTech')">Limpiar</button></div>
+        <div><label>Firma del cliente</label>
+          <canvas id="sigClient" class="signature"></canvas>
+          <button type="button" class="secondary small" onclick="clearSig('sigClient')">Limpiar</button></div>
+      </div>
+
+      <div class="toolbar no-print" style="margin-top:20px">
+        <button type="submit">Guardar y finalizar informe</button>
+        <button type="button" class="secondary" onclick="saveDraft('${r.id}')">Guardar avance</button>
+      </div>
+    </form>`;
+
+  setupSig('sigTech');
+  setupSig('sigClient');
+  if (sigTechUrl)   drawSig('sigTech', sigTechUrl);
+  if (sigClientUrl) drawSig('sigClient', sigClientUrl);
+
+  $('fPhotos').addEventListener('change', loadReportPhotos);
+  renderPhotoPreview();
+}
+
+/* ============================================================
+   FOTOS
+   ============================================================ */
+function renderPhotoPreview() {
+  const out = $('fPhotoPreview');
+  if (!out) return;
+  out.innerHTML = reportPhotos.map((p, i) => `
+    <div class="photo-item">
+      <img src="${p.url || ''}" alt="Evidencia ${i + 1}">
+      <button type="button" class="small danger no-print" onclick="removeReportPhoto(${i})">Quitar</button>
+    </div>`).join('');
+  $('fPhotoCount').textContent = reportPhotos.length + ' de 10 fotos';
+  $('fPhotos').disabled = reportPhotos.length >= 10;
+}
+
+function removeReportPhoto(i) {
+  const p = reportPhotos[i];
+  if (!p) return;
+  if (p.isExisting && p.id && p.path) deletedPhotos.push({ id: p.id, path: p.path });
+  if (p.url && p.url.startsWith('blob:')) URL.revokeObjectURL(p.url);
+  reportPhotos.splice(i, 1);
+  renderPhotoPreview();
+}
+
+function loadReportPhotos(e) {
+  const slots = 10 - reportPhotos.length;
+  let picked = [...(e.target.files || [])];
+  e.target.value = '';
+  if (slots <= 0) { alert('Máximo 10 fotografías.'); return; }
+  if (picked.length > slots) { alert(`Solo se agregarán ${slots} fotos.`); picked = picked.slice(0, slots); }
+  for (const f of picked) {
+    if (!f.type.startsWith('image/')) continue;
+    reportPhotos.push({ file: f, url: URL.createObjectURL(f), isExisting: false });
+  }
+  renderPhotoPreview();
+}
+
+/* ============================================================
+   GUARDAR INFORME
+   ============================================================ */
+async function saveDraft(id) {
+  await saveTechReport({ preventDefault() {} }, id, true);
+}
+
+async function saveTechReport(e, serviceId, draft) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  // Convertir firmas dibujadas a dataURL
+  if (pendingSignatures.tech === 'DRAWN')   pendingSignatures.tech   = sigData('sigTech');
+  if (pendingSignatures.client === 'DRAWN') pendingSignatures.client = sigData('sigClient');
+
+  try {
+    const payload = {
+      attended_on:     $('fDate').value || null,
+      technician:      $('fTech').value.trim(),
+      site_contact:    $('fContact').value.trim(),
+      outcome:         $('fOutcome').value || null,
+      equipment:       $('fEquipment').value.trim(),
+      brand:           $('fBrand').value.trim(),
+      model:           $('fModel').value.trim(),
+      serial:          $('fSerial').value.trim(),
+      diagnosis:       $('fDiagnosis').value.trim(),
+      work_done:       $('fWork').value.trim(),
+      tests:           $('fTests').value.trim(),
+      materials:       $('fMaterials').value.trim(),
+      recommendations: $('fRecommendations').value.trim(),
+      quote_required:  $('fQuote').value || null,
+      charge_visit:    $('fCharge').value || null,
+      amount:          $('fAmount').value ? Number($('fAmount').value) : null,
+      payment_status:  $('fPaid').value || null,
+      quote_notes:     $('fQuoteNotes').value.trim(),
+      received_by:     $('fReceived').value.trim(),
+      client_notes:    $('fClientNotes').value.trim(),
+      status:          draft ? 'borrador' : 'finalizado'
+    };
+
+    if (!draft && (!payload.quote_required || !payload.charge_visit)) {
+      showToast('Responde si se requiere cotización y cobro.', 'error'); return;
+    }
+
+    // Firmas
+    if (pendingSignatures.tech !== null) {
+      payload.technician_sig_path = pendingSignatures.tech
+        ? await sbUploadSignature(serviceId, 'tech', pendingSignatures.tech)
+        : null;
+    }
+    if (pendingSignatures.client !== null) {
+      payload.client_sig_path = pendingSignatures.client
+        ? await sbUploadSignature(serviceId, 'client', pendingSignatures.client)
+        : null;
+    }
+
+    const report = await sbUpsertReport(serviceId, payload);
+
+    // Fotos eliminadas
+    for (const p of deletedPhotos) {
+      await sbDeletePhotoRow(p.id);
+      await sbDeleteFile('report-photos', p.path);
+    }
+    deletedPhotos = [];
+
+    // Fotos nuevas
+    let order = 0;
+    for (const p of reportPhotos) {
+      if (!p.isExisting && p.file) {
+        const path = await sbUploadPhoto(serviceId, p.file);
+        const row  = await sbInsertPhoto(report.id, path, order);
+        p.id         = row.id;
+        p.path       = path;
+        p.isExisting = true;
+      }
+      order++;
+    }
+
+    pendingSignatures = { tech: null, client: null };
+
+    await refreshData();
+    if (draft) {
+      showToast('Avance guardado correctamente.', 'success');
+      await openDetails(serviceId);
+    } else {
+      showToast('Informe técnico guardado y finalizado.', 'success');
+      await viewReport(serviceId);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('Error al guardar informe: ' + err.message, 'error');
+  }
+}
+
+/* ============================================================
+   FIRMAS
+   ============================================================ */
+function setupSig(id) {
+  const c = $(id); if (!c) return;
+  const ctx = c.getContext('2d');
+  let drawing = false;
+  const pos = e => {
+    const b = c.getBoundingClientRect();
+    return { x: (e.clientX - b.left) * c.width / b.width, y: (e.clientY - b.top) * c.height / b.height };
+  };
+  c.addEventListener('pointerdown', e => {
+    e.preventDefault(); drawing = true;
+    const a = pos(e); ctx.beginPath(); ctx.moveTo(a.x, a.y);
+  });
+  c.addEventListener('pointermove', e => {
+    if (!drawing) return; e.preventDefault();
+    const a = pos(e);
+    ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.strokeStyle = '#172b4d';
+    ctx.lineTo(a.x, a.y); ctx.stroke();
+    if (id === 'sigTech')   pendingSignatures.tech   = 'DRAWN';
+    if (id === 'sigClient') pendingSignatures.client = 'DRAWN';
+  });
+  window.addEventListener('pointerup', () => drawing = false);
+}
+function clearSig(id) {
+  const c = $(id); if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  if (id === 'sigTech')   pendingSignatures.tech   = '';
+  if (id === 'sigClient') pendingSignatures.client = '';
+}
+function sigData(id) {
+  const c = $(id); if (!c) return '';
+  const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  for (let i = 3; i < d.length; i += 4) if (d[i]) return c.toDataURL('image/png');
+  return '';
+}
+function drawSig(id, src) {
+  const c = $(id); if (!c || !src) return;
+  const im = new Image();
+  im.crossOrigin = 'anonymous';
+  im.onload = () => c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+  im.src = src;
+}
+
+/* ============================================================
+   VER INFORME FINAL + PDF
+   ============================================================ */
+async function viewReport(id) {
+  try {
+    const r = await sbGetService(id);
+    if (!r) { alert('No se encontró.'); return; }
+    if (me.role === 'technician' && r.assigned_to !== me.id) {
+      alert('No tienes permiso para ver informes de otro técnico.'); return;
+    }
+    const d = await sbGetReport(id);
+    if (!d) { alert('Todavía no hay informe técnico guardado.'); return; }
+
+    const rows = await sbListPhotos(d.id);
+    const photos = await Promise.all(rows.map(async p => ({
+      url: await sbSignedUrl('report-photos', p.storage_path)
+    })));
+    const sigTechUrl   = d.technician_sig_path ? await sbSignedUrl('signatures', d.technician_sig_path) : null;
+    const sigClientUrl = d.client_sig_path     ? await sbSignedUrl('signatures', d.client_sig_path)     : null;
+
+    const s = cfgCache || await sbGetCompany();
+    $('appScreen').classList.add('hidden');
+    $('detailView').classList.add('hidden');
+    $('reportView').classList.remove('hidden');
+    $('reportView').innerHTML = `
+      <div class="toolbar no-print" style="margin-bottom:16px">
+        <button onclick="printReportPdf('${r.id}')">Imprimir / Guardar PDF</button>
+        <button class="secondary" onclick="backToApp('historyTab')">Volver al historial</button>
+      </div>
+      <div class="report-head">
+        <div class="report-company">
+          <h1>${esc(s?.name || 'N24 Seguridad Electronica S.A.S.')}</h1>
+          <div class="report-company-details">
+            <div>${esc(s?.nit || '')} · ${esc(s?.phone || '')} · ${esc(s?.email || '')}</div>
+            <div>${esc(s?.address || '')}</div>
+          </div>
+        </div>
+        <div class="report-title">
+          <h1>REPORTE TÉCNICO</h1>
+          <b>${esc(r.number)}</b>
+          <p style="font-size:12px;margin:5px 0">Atención: ${esc(d.attended_on || '—')}</p>
+          ${statusPill(r.status)}
+        </div>
+      </div>
+
+      <div class="report-section"><h3>1. Solicitud del cliente</h3>
+        <div class="report-grid">
+          ${pair('Fecha de solicitud', r.requested_at)}
+          ${pair('Canal', r.channel)}
+          ${pair('Cliente', r.client)}
+          ${pair('NIT', r.client_nit)}
+          ${pair('Contacto', r.contact)}
+          ${pair('Teléfono / correo', r.contact_info)}
+          ${pair('Sede', r.site)}
+          ${pair('Dirección', r.address)}
+          ${pair('Servicio requerido', r.service_type)}
+          ${pair('Sistema', r.system_type)}
+          ${pair('Prioridad', r.priority)}
+        </div>
+        ${para('Falla reportada', r.problem)}
+      </div>
+
+      <div class="report-section"><h3>2. Atención técnica</h3>
+        <div class="report-grid">
+          ${pair('Técnico', d.technician)}
+          ${pair('Contacto en sitio', d.site_contact)}
+          ${pair('Resultado', d.outcome)}
+          ${pair('Equipo / ubicación', d.equipment)}
+          ${pair('Marca', d.brand)}
+          ${pair('Modelo', d.model)}
+          ${pair('Serial', d.serial)}
+        </div>
+        ${para('Diagnóstico técnico', d.diagnosis)}
+        ${para('Actividades realizadas / solución', d.work_done)}
+        ${para('Pruebas y resultado', d.tests)}
+        ${para('Repuestos / materiales', d.materials)}
+        ${para('Recomendaciones / pendientes', d.recommendations)}
+      </div>
+
+      <div class="report-section"><h3>3. Cotización y cobro</h3>
+        <div class="report-grid">
+          ${pair('¿Requiere cotización?', d.quote_required)}
+          ${pair('Estado de cotización', d.quote_status || (d.quote_required === 'Sí' ? 'Pendiente de gestión' : 'No requerida'))}
+          ${pair('Referencia enviada', d.quote_reference)}
+          ${pair('Fecha de envío', d.quote_sent_at ? new Date(d.quote_sent_at).toLocaleString('es-CO') : '—')}
+          ${pair('¿Se cobra la visita?', d.charge_visit)}
+          ${pair('Valor (COP)', d.amount ? Number(d.amount).toLocaleString('es-CO') : '—')}
+          ${pair('Estado del cobro', d.payment_status)}
+        </div>
+        ${para('Detalle', d.quote_notes)}
+      </div>
+
+      <div class="report-section"><h3>4. Evidencia fotográfica</h3>
+        <div class="report-photos">
+          ${photos.filter(p => p.url).map(p => `<img src="${p.url}" alt="Evidencia">`).join('') || '<span class="muted">No se adjuntaron fotografías.</span>'}
+        </div>
+      </div>
+
+      <div class="report-section"><h3>5. Aceptación y conformidad</h3>
+        <div class="report-grid">
+          ${pair('Recibido por', d.received_by)}
+          ${pair('Observaciones del cliente', d.client_notes)}
+        </div>
+        <div class="report-grid" style="margin-top:18px">
+          <div>
+            <b>Firma del técnico</b><br>
+            ${sigTechUrl ? `<img style="max-width:220px;max-height:90px" src="${sigTechUrl}">` : '<p class="muted">Sin firma</p>'}
+            <div style="border-top:1px solid #888;font-size:12px;padding-top:4px">${esc(d.technician || '')}</div>
+          </div>
+          <div>
+            <b>Firma del cliente</b><br>
+            ${sigClientUrl ? `<img style="max-width:220px;max-height:90px" src="${sigClientUrl}">` : '<p class="muted">Sin firma</p>'}
+            <div style="border-top:1px solid #888;font-size:12px;padding-top:4px">${esc(d.received_by || '')}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid #ddd;margin-top:22px;padding-top:10px;font-size:11px;color:#667">
+        ${esc(s?.footer || '')} · Generado ${new Date().toLocaleString('es-CO')}
+      </div>`;
+  } catch (err) {
+    console.error(err);
+    alert('Error al abrir informe: ' + err.message);
+  }
+}
+
+function printReportPdf(id) {
+  const r = services.find(x => x.id === id);
+  const oldTitle = document.title;
+  const safe = (r?.client || 'Cliente').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 60) || 'Cliente';
+  document.title = 'Reporte_Tecnico_' + safe + '_' + (r?.number || id);
+  const restore = () => { document.title = oldTitle; window.removeEventListener('afterprint', restore); };
+  window.addEventListener('afterprint', restore);
+  window.print();
+  setTimeout(() => { if (document.title !== oldTitle) restore(); }, 1500);
+}
+
+/* ============================================================
+   COTIZACIONES
+   ============================================================ */
+async function renderQuotes() {
+  if (!$('quoteList')) return;
+  try {
+    quotesCache = await sbListQuotes();
+    if (me?.role === 'technician') {
+      quotesCache = quotesCache.filter(q =>
+        q.created_by === me.id ||
+        (q.service_id && services.some(s => s.id === q.service_id && s.assigned_to === me.id))
+      );
+    }
+    $('quoteList').innerHTML = quotesCache.length ? `
+      <div class="tablewrap"><table>
+        <thead><tr><th>Número / fecha</th><th>Cliente</th><th>Relacionado con</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>${quotesCache.map(q => `
+          <tr>
+            <td><b>${esc(q.number)}</b><br><span class="muted">${esc(q.date)}</span></td>
+            <td>${esc(q.client)}<br><span class="muted">${esc(q.contact || '')}</span></td>
+            <td>${esc(q.service_id ? (services.find(s => s.id === q.service_id)?.number || '—') : 'Independiente')}</td>
+            <td><b>${money(q.total)}</b></td>
+            <td><span class="pill ${q.status === 'Enviada' ? 'green' : 'blue'}">${esc(q.status)}</span></td>
+            <td><div class="toolbar">
+              ${q.status === 'Borrador' ? `<button class="small secondary" onclick="editQuote('${q.id}')">Editar</button>` : ''}
+              <button class="small" onclick="printQuote('${q.id}')">PDF / Imprimir</button>
+              ${q.status === 'Borrador' ? `<button class="small success" onclick="markQuoteSent('${q.id}')">Registrar envío y cerrar</button>` : ''}
+            </div></td>
+          </tr>`).join('')}</tbody>
+      </table></div>`
+      : '<div class="empty">Todavía no hay cotizaciones.</div>';
+  } catch (err) {
+    console.error(err);
+    $('quoteList').innerHTML = `<div class="empty">Error al cargar cotizaciones: ${esc(err.message)}</div>`;
+  }
+}
+
+function quoteItemRow(item = { desc: '', qty: 1, price: 0 }) {
+  return `<tr>
+    <td><input class="qi-desc" placeholder="Descripción del producto o servicio" value="${esc(item.desc)}" required></td>
+    <td><input class="qi-qty" type="number" min="1" step="1" value="${Math.max(1, Math.round(Number(item.qty) || 1))}" oninput="this.value=this.value.replace(/[^0-9]/g,'');calcQuoteTotals()" required></td>
+    <td><input class="qi-price" type="number" min="0" step="1" value="${Math.round(Number(item.price) || 0)}" oninput="this.value=this.value.replace(/[^0-9]/g,'');calcQuoteTotals()" required></td>
+    <td class="qi-subtotal">${money((Number(item.qty) || 1) * (Number(item.price) || 0))}</td>
+    <td class="no-print"><button type="button" class="small danger" onclick="this.closest('tr').remove();calcQuoteTotals()">Quitar</button></td>
+  </tr>`;
+}
+function addQuoteItem(item) {
+  $('qItems').insertAdjacentHTML('beforeend', quoteItemRow(item));
+  calcQuoteTotals();
+}
+function getQuoteItems() {
+  return [...$('qItems').querySelectorAll('tr')].map(tr => ({
+    desc:  tr.querySelector('.qi-desc').value.trim(),
+    qty:   Math.max(0, Math.round(Number(tr.querySelector('.qi-qty').value) || 0)),
+    price: Math.max(0, Math.round(Number(tr.querySelector('.qi-price').value) || 0))
+  }));
+}
+function calcQuoteTotals() {
+  if (!$('qItems')) return;
+  const items = getQuoteItems();
+  const rate  = Number($('qTaxRate').value) || 0;
+  const disc  = Math.max(0, Number($('qDiscount').value) || 0);
+  const subtotal = items.reduce((s, i) => s + (i.qty * i.price), 0);
+  const discount = Math.min(subtotal, disc);
+  const taxable  = subtotal - discount;
+  const tax      = taxable * rate / 100;
+  const total    = taxable + tax;
+  const advPct   = Math.max(0, Math.min(100, Number($('qAdvance').value) || 0));
+  const advance  = total * advPct / 100;
+
+  [...$('qItems').querySelectorAll('tr')].forEach(tr => {
+    const q = Number(tr.querySelector('.qi-qty').value) || 0;
+    const p = Number(tr.querySelector('.qi-price').value) || 0;
+    tr.querySelector('.qi-subtotal').textContent = money(q * p);
+  });
+
+  $('qTotals').innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin:6px 0"><span>Subtotal</span><b>${money(subtotal)}</b></div>
+    <div style="display:flex;justify-content:space-between;margin:6px 0"><span>Descuento</span><b>− ${money(discount)}</b></div>
+    <div style="display:flex;justify-content:space-between;margin:6px 0"><span>Base gravable</span><b>${money(taxable)}</b></div>
+    <div style="display:flex;justify-content:space-between;margin:6px 0"><span>IVA (${rate}%)</span><b>${money(tax)}</b></div>
+    <hr>
+    <div style="display:flex;justify-content:space-between;font-size:19px;margin:8px 0"><b>TOTAL</b><b>${money(total)}</b></div>
+    <div style="display:flex;justify-content:space-between;margin:6px 0"><span>Anticipo (${advPct}%)</span><b>${money(advance)}</b></div>
+    <div style="display:flex;justify-content:space-between;margin:6px 0"><span>Saldo</span><b>${money(total - advance)}</b></div>`;
+
+  return { subtotal, discount, tax, total, advance, balance: total - advance };
+}
+
+function clearQuoteForm() {
+  $('qId').value = '';
+  $('qServiceId').value = '';
+  $('qNumber').value = '';
+  $('qDate').value = today();
+  $('qValidity').value = 15;
+  $('qTaxRate').value = 19;
+  $('qDiscount').value = 0;
+  $('qAdvance').value = 60;
+  
+  // Esta es la corrección para el menú desplegable
+  if ($('qPayment')) {
+    $('qPayment').value = 'Anticipo de obra';
+  }
+
+  $('qItems').innerHTML = '';
+  $('qTerms').value = 'La programación está sujeta a disponibilidad y coordinación con el cliente.';
+  $('qNotes').value = '';
+  $('qClient').value = '';
+  $('qNit').value = '';
+  $('qContact').value = '';
+  $('qPhone').value = '';
+  $('qEmail').value = '';
+  $('qAddress').value = '';
+  $('qSubject').value = '';
+  $('qTechnician').value = '';
+  
+  addQuoteItem();
+  calcQuoteTotals();
+}
+function newQuote(serviceId = '') {
+  const r = serviceId ? services.find(x => x.id === serviceId) : null;
+  if (me?.role !== 'admin' && !(me?.role === 'technician' && r && r.assigned_to === me.id && r.status === 'Pendiente de cotización')) {
+    alert('Solo puedes preparar cotizaciones para tus servicios en estado Pendiente de cotización.');
+    return;
+  }
+  clearQuoteForm();
+  if (r) {
+    $('qServiceId').value = r.id;
+    $('qClient').value    = r.client || '';
+    $('qNit').value       = r.client_nit || '';
+    $('qContact').value   = r.contact || '';
+    $('qPhone').value     = r.contact_info || '';
+    $('qAddress').value   = r.address || r.site || '';
+    $('qSubject').value   = `${r.service_type || 'Servicio'} — ${r.system_type || ''}`;
+    $('qTechnician').value = techName(r.assigned_to) || me.full_name || '';
+    $('qTerms').value = `Cotización basada en la visita ${r.number}.\nLa programación está sujeta a disponibilidad y coordinación con el cliente.`;
+  }
+  showTab('quotesTab', document.querySelector('[data-tab="quotesTab"]'));
+  $('quoteList').classList.add('hidden');
+  $('quotePreview').classList.add('hidden');
+  $('quoteEditor').classList.remove('hidden');
+  $('quoteEditorTitle').textContent = 'Nueva cotización';
+}
+
+async function editQuote(id) {
+  const q = quotesCache.find(x => x.id === id);
+  if (!q) return;
+  if (q.status === 'Enviada') { alert('La cotización ya fue enviada y está cerrada.'); return; }
+  if (me?.role === 'technician') {
+    const linked = q.service_id && services.find(s => s.id === q.service_id && s.assigned_to === me.id);
+    if (q.created_by !== me.id && !linked) { alert('Sin permiso para editar esta cotización.'); return; }
+  }
+  const items = await sbGetQuoteItems(id);
+  clearQuoteForm();
+  $('qId').value = q.id;
+  $('qServiceId').value = q.service_id || '';
+  $('qNumber').value = q.number;
+  $('qDate').value = q.date || today();
+  $('qValidity').value = q.validity_days || 15;
+  $('qClient').value = q.client || '';
+  $('qNit').value = q.client_nit || '';
+  $('qContact').value = q.contact || '';
+  $('qPhone').value = q.phone || '';
+  $('qEmail').value = q.email || '';
+  $('qAddress').value = q.address || '';
+  $('qSubject').value = q.subject || '';
+  $('qTechnician').value = q.technician || '';
+  $('qTerms').value = q.terms || '';
+  $('qNotes').value = q.notes || '';
+  $('qPayment').value = q.payment_terms || '';
+  $('qTaxRate').value = q.tax_rate ?? 19;
+  $('qDiscount').value = q.discount ?? 0;
+  $('qAdvance').value = q.advance_rate ?? 60;
+  $('qItems').innerHTML = '';
+  (items || []).forEach(i => addQuoteItem({ desc: i.description, qty: i.qty, price: i.unit_price }));
+  calcQuoteTotals();
+  $('quoteList').classList.add('hidden');
+  $('quoteEditor').classList.remove('hidden');
+  $('quoteEditorTitle').textContent = 'Editar ' + q.number;
+}
+
+function closeQuoteEditor() {
+  $('quoteEditor').classList.add('hidden');
+  $('quotePreview').classList.add('hidden');
+  $('quoteList').classList.remove('hidden');
+  renderQuotes();
+}
+
+async function saveQuote(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  try {
+    const items = getQuoteItems();
+    if (!items.length || items.some(i => !i.desc || i.qty <= 0)) {
+      showToast('Agrega al menos un concepto válido.', 'error'); return null;
+    }
+    const tot = calcQuoteTotals();
+    const payload = {
+      id: $('qId').value || null,
+      service_id: $('qServiceId').value || null,
+      date: $('qDate').value,
+      validity_days: Number($('qValidity').value) || 15,
+      client: $('qClient').value.trim(),
+      client_nit: $('qNit').value.trim(),
+      contact: $('qContact').value.trim(),
+      phone: $('qPhone').value.trim(),
+      email: $('qEmail').value.trim(),
+      address: $('qAddress').value.trim(),
+      subject: $('qSubject').value.trim(),
+      technician: $('qTechnician').value.trim(),
+      terms: $('qTerms').value.trim(),
+      notes: $('qNotes').value.trim(),
+      payment_terms: $('qPayment').value.trim(),
+      tax_rate: Number($('qTaxRate').value) || 0,
+      discount: Number($('qDiscount').value) || 0,
+      advance_rate: Number($('qAdvance').value) || 0,
+      subtotal: tot.subtotal,
+      tax: tot.tax,
+      total: tot.total
+    };
+    const itemsPayload = items.map((it, i) => ({ description: it.desc, qty: it.qty, unit_price: it.price, sort_order: i }));
+    const saved = await sbSaveQuote(payload, itemsPayload);
+    $('qId').value = saved.id;
+    $('qNumber').value = saved.number;
+    showToast('Cotización ' + saved.number + ' guardada con éxito.', 'success');
+    await renderQuotes();
+    return saved;
+  } catch (err) {
+    console.error(err);
+    showToast('Error al guardar cotización: ' + err.message, 'error');
+    return null;
+  }
+}
+
+async function saveAndPrintQuote() {
+  const q = await saveQuote();
+  if (q) await printQuote(q.id);
+}
+
+async function printQuote(id) {
+  try {
+    const q = await sbGetQuote(id);
+    if (!q) return;
+    q.items = (q.quote_items || []).map(i => ({ desc: i.description, qty: i.qty, price: i.unit_price }));
+    q.advance = q.total * (q.advance_rate || 0) / 100;
+    q.balance = q.total - q.advance;
+    const s = cfgCache || await sbGetCompany();
+    const html = quoteHtml(q, s);
+
+    const old = document.getElementById('quotePrintWindow');
+    if (old) old.remove();
+    const w = document.createElement('div');
+    w.id = 'quotePrintWindow';
+    w.innerHTML = html;
+    document.body.appendChild(w);
+    document.querySelector('header').style.display = 'none';
+    document.querySelector('main').style.display = 'none';
+    w.style.display = 'block';
+
+    const st = document.createElement('style');
+    st.id = 'quotePrintStyle';
+    st.textContent = '@page{size:A4;margin:12mm}body{background:white!important}#quotePrintWindow{display:block!important;max-width:190mm;margin:0 auto}#quotePrintWindow .quote-paper{padding:0!important}#quotePrintWindow tr{page-break-inside:avoid}';
+    document.head.appendChild(st);
+
+    const restore = () => {
+      document.querySelector('header').style.display = '';
+      document.querySelector('main').style.display = '';
+      w.remove(); st.remove();
+      window.removeEventListener('afterprint', restore);
+    };
+    window.addEventListener('afterprint', restore);
+    document.title = 'Cotizacion_' + (q.client || 'Cliente').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_') + '_' + q.number;
+    window.print();
+    setTimeout(() => { restore(); document.title = 'N24SE · Gestión de Visitas Técnicas'; }, 1800);
+  } catch (err) {
+    alert('Error al imprimir: ' + err.message);
+  }
+}
+
+function quoteHtml(q, s) {
+  const terms = [
+    `Forma de pago: ${q.payment_terms || 'Según acuerdo comercial'}.`,
+    ...(q.terms || '').split('\n').filter(Boolean).filter(x => !/^\s*forma de pago\s*:/i.test(x))
+  ].map(x => `<li>${esc(x)}</li>`).join('');
+
+  return `<div class="quote-paper" style="font-family:Arial,sans-serif;color:#253247;background:#fff;padding:20px">
+    <div style="display:flex;justify-content:space-between;gap:22px;border-bottom:3px solid #172b4d;padding-bottom:14px">
+      <div style="flex:1">
+        <h2 style="margin:0 0 5px;color:#172b4d">${esc(s?.name || 'N24 Seguridad Electrónica S.A.S.')}</h2>
+        <div style="font-size:12px;line-height:1.7">
+          NIT: ${esc(s?.nit || '')}<br>
+          ${esc(s?.phone || '')}<br>
+          ${esc(s?.address || '')}<br>
+          ${esc(s?.email || '')}
+        </div>
+      </div>
+      <div style="text-align:right;min-width:190px">
+        <h1 style="margin:0;color:#1769aa;font-size:25px">COTIZACIÓN</h1>
+        <b>${esc(q.number)}</b>
+        <div style="font-size:12px;margin-top:7px">Fecha: ${esc(q.date)}<br>Validez: ${q.validity_days || 15} días</div>
+      </div>
+    </div>
+
+    <h3 style="color:#1769aa;margin:20px 0 8px">DATOS DEL CLIENTE</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:12px;border:1px solid #dbe3ec;padding:12px;border-radius:6px">
+      <div><b>Cliente:</b> ${esc(q.client)}</div>
+      <div><b>NIT/CC:</b> ${esc(q.client_nit || '—')}</div>
+      <div><b>Contacto:</b> ${esc(q.contact || '—')}</div>
+      <div><b>Teléfono:</b> ${esc(q.phone || '—')}</div>
+      <div><b>Email:</b> ${esc(q.email || '—')}</div>
+      <div><b>Dirección:</b> ${esc(q.address || '—')}</div>
+      <div><b>Técnico responsable:</b> ${esc(q.technician || '—')}</div>
+      ${q.subject ? `<div style="grid-column:1/-1"><b>Asunto:</b> ${esc(q.subject)}</div>` : ''}
+    </div>
+
+    <table style="margin-top:18px;width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:#172b4d;color:white">
+        <th style="padding:10px;color:white">Descripción</th>
+        <th style="padding:10px;color:white;text-align:center">Cant.</th>
+        <th style="padding:10px;color:white;text-align:right">Vlr. unitario</th>
+        <th style="padding:10px;color:white;text-align:right">Subtotal</th>
+      </tr></thead>
+      <tbody>${q.items.map(i => `<tr>
+        <td style="padding:10px;border-bottom:1px solid #dbe3ec">${esc(i.desc)}</td>
+        <td style="padding:10px;text-align:center;border-bottom:1px solid #dbe3ec">${i.qty}</td>
+        <td style="padding:10px;text-align:right;border-bottom:1px solid #dbe3ec">${money(i.price)}</td>
+        <td style="padding:10px;text-align:right;border-bottom:1px solid #dbe3ec">${money(i.qty * i.price)}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+
+    <div style="margin:15px 0 0 auto;max-width:320px;font-size:12px">
+      <div style="display:flex;justify-content:space-between;padding:5px"><span>Subtotal</span><b>${money(q.subtotal)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:5px"><span>Descuento</span><b>− ${money(q.discount)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:5px"><span>IVA (${q.tax_rate}%)</span><b>${money(q.tax)}</b></div>
+      <div style="display:flex;justify-content:space-between;padding:10px;background:#172b4d;color:white;font-size:16px"><b>TOTAL</b><b>${money(q.total)}</b></div>
+      <div style="padding:5px;display:flex;justify-content:space-between"><span>Anticipo (${q.advance_rate}%)</span><b>${money(q.advance)}</b></div>
+      <div style="padding:5px;display:flex;justify-content:space-between"><span>Saldo</span><b>${money(q.balance)}</b></div>
+    </div>
+
+    <div style="margin-top:22px;display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div>
+        <h3 style="color:#1769aa;margin:0 0 7px">CONDICIONES COMERCIALES</h3>
+        <div style="font-size:12px;line-height:1.6">${terms ? `<ul style="margin:0;padding-left:18px">${terms}</ul>` : '—'}</div>
+      </div>
+      <div>
+        <h3 style="color:#1769aa;margin:0 0 7px">NOTAS / ALCANCE</h3>
+        <div style="font-size:12px;line-height:1.6;white-space:pre-wrap">${esc(q.notes || '—')}</div>
+      </div>
+    </div>
+
+    <div style="margin-top:26px;padding-top:12px;border-top:1px solid #dbe3ec;text-align:center;font-size:11px;color:#65758b">
+      Gracias por su preferencia. Cotización sujeta a disponibilidad y condiciones comerciales.<br>
+      ${esc(s?.name || '')} · ${esc(s?.email || '')} · ${esc(s?.phone || '')}
+    </div>
+  </div>`;
+}
+
+async function markQuoteSent(id) {
+  if (!confirm('¿Confirmas que la cotización ya fue enviada al cliente? Quedará cerrada.')) return;
+  try {
+    await sbMarkQuoteSent(id);
+    await refreshData();
+    await renderQuotes();
+    showToast('Cotización enviada. Servicio cerrado.', 'success');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+/* ============================================================
+   USUARIOS
+   ============================================================ */
+async function renderUsers() {
+  try {
+    const profiles = await sbListProfiles();
+    $('usersRows').innerHTML = profiles.map(u => `
+      <tr>
+        <td>${esc(u.full_name)}${u.id === me.id ? ' <span class="muted">(tú)</span>' : ''}</td>
+        <td><span class="muted">${esc(u.id.slice(0,8))}…</span></td>
+        <td>${u.role === 'admin' ? 'Administrador' : 'Técnico'}${u.active ? '' : ' · inactivo'}</td>
+        <td>${u.id === me.id ? '<span class="muted">—</span>' : `
+          <button class="small secondary" onclick="toggleUserActive('${u.id}',${!u.active})">${u.active ? 'Desactivar' : 'Activar'}</button>
+        `}</td>
+      </tr>`).join('');
+  } catch (err) {
+    $('usersRows').innerHTML = `<tr><td colspan="4" class="muted">Error: ${esc(err.message)}</td></tr>`;
+  }
+}
+
+async function toggleUserActive(id, active) {
+  try {
+    await sbUpdateProfile(id, { active });
+    await renderUsers();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+/* ============================================================
+   EMPRESA
+   ============================================================ */
+async function loadCfg() {
+  try {
+    cfgCache = await sbGetCompany();
+    if (!cfgCache) return;
+    if ($('companyName'))    $('companyName').value    = cfgCache.name || '';
+    if ($('companyNit'))     $('companyNit').value     = cfgCache.nit || '';
+    if ($('companyPhone'))   $('companyPhone').value   = cfgCache.phone || '';
+    if ($('companyEmail'))   $('companyEmail').value   = cfgCache.email || '';
+    if ($('companyAddress')) $('companyAddress').value = cfgCache.address || '';
+    if ($('companyFooter'))  $('companyFooter').value  = cfgCache.footer || '';
+  } catch (err) { console.error(err); }
+}
+
+async function saveSettings(e) {
+  e.preventDefault();
+  try {
+    await sbSaveCompany({
+      name:    $('companyName').value.trim(),
+      nit:     $('companyNit').value.trim(),
+      phone:   $('companyPhone').value.trim(),
+      email:   $('companyEmail').value.trim(),
+      address: $('companyAddress').value.trim(),
+      footer:  $('companyFooter').value.trim()
+    });
+    cfgCache = null;
+    await loadCfg();
+    alert('Datos guardados.');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+/* ============================================================
+   RESPALDO
+   ============================================================ */
+async function exportBackup() {
+  try {
+    const data = {
+      services,
+      quotes: await sbListQuotes(),
+      profiles: await sbListProfiles(),
+      company: await sbGetCompany(),
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'respaldo_n24_' + today() + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (err) {
+    alert('Error al exportar: ' + err.message);
+  }
+}
+
+/* ============================================================
+   NAVEGACIÓN
+   ============================================================ */
+function showTab(id, btn) {
+  $('detailView').classList.add('hidden');
+  $('reportView').classList.add('hidden');
+  ['intakeTab','queueTab','techTab','historyTab','quotesTab','usersTab','settingsTab']
+    .forEach(x => $(x).classList.toggle('hidden', x !== id));
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b === btn));
+  currentTab = id;
+  if (id === 'queueTab')   renderQueue();
+  if (id === 'techTab')    renderTech();
+  if (id === 'historyTab') renderHistory();
+  if (id === 'usersTab')   renderUsers();
+  if (id === 'quotesTab')  renderQuotes();
+}
+
+function backToApp(tab) {
+  $('detailView').classList.add('hidden');
+  $('reportView').classList.add('hidden');
+  $('appScreen').classList.remove('hidden');
+  const b = document.querySelector(`[data-tab="${tab}"]`);
+  showTab(tab, b);
+}
+</script>
+</body>
+</html>

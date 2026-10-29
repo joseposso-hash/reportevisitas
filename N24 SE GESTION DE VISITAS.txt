@@ -1,0 +1,46 @@
+N24 SE GESTION DE VISITAS
+
+
+VERCEL.COM
+SUPABASE.COM
+
+CONEXION CON TELEGRAM
+@BotFather
+
+api token telegram
+
+@N24_visitas.bot
+
+----------------------------------
+
+Paso 1: Los técnicos activan el bot
+Le envías a Santiago el enlace: https://t.me/N24_Visitas_bot
+
+Santiago entra, le da a "Iniciar" y te escribe un mensaje (ej: "Hola, soy Santiago").
+
+Paso 2: Tú sacas el ID desde tu PC
+Abres tu navegador en tu PC.
+
+Pegas esta URL: https://api.telegram.org/bot8398308977:AAGphD1xrAlk_W29bsxE0T48CeY-f-EPG7Q/getUpdates
+
+Buscas el mensaje de Santiago. Verás algo como esto:
+"chat":{"id":123456789,"first_name":"Santiago",...}
+
+Copias ese número: 123456789.
+
+Paso 3: Lo guardas en Supabase
+Vas al SQL Editor de Supabase y ejecutas:
+
+sql
+update public.profiles 
+set telegram_chat_id = '123456789' 
+where full_name = 'Santiago Leal';
+Respondiendo a tu duda exacta:
+
+El ID: Sí, lo reemplazas por el número que encontraste en la URL (ej. 123456789).
+
+El Nombre: No lo cambies. El nombre 'Santiago Leal' lo usas para que Supabase sepa a qué perfil de la base de datos asignarle ese número. Ese nombre debe ser exactamente igual al que le pusiste cuando creaste el perfil del técnico en la base de datos (respeta mayúsculas y tildes).
+
+(Repite este proceso para cada técnico: buscas su chat_id en la URL, y ejecutas el SQL con su nombre).
+
+Haz la prueba con uno solo (el que ya te envió el mensaje). Cuando lo hagas, ve a la app y asígnale una visita. Si le suena el celular a ese técnico, ¡ya sabes cómo hacerlo con todos los demás!
