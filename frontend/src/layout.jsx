@@ -15,15 +15,21 @@ export function Layout({ children }) {
       {/* Barra de navegación superior */}
       <header className="bg-blue-900 text-white shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 font-bold text-lg hover:text-blue-200 transition-colors">
-            <span>🛡️</span>
-            <span>N24 Reportes</span> <Link to="/" className="flex items-center gap-2 font-bold text-lg hover:text-blue-200 transition-colors">
-  <span>🛡️</span>
-  <span>N24 Reportes</span>
-</Link>
-<Link to="/clientes" className="text-sm hover:text-blue-200 transition-colors ml-4">Clientes</Link>
-          </Link>
           
+          {/* Logo y enlaces */}
+          <div className="flex items-center gap-6">
+            <Link to="/" className="flex items-center gap-2 font-bold text-lg hover:text-blue-200 transition-colors">
+              <span>🛡️</span>
+              <span>N24 Reportes</span>
+            </Link>
+            
+            <nav className="flex items-center gap-4">
+              <Link to="/" className="text-sm hover:text-blue-200 transition-colors">Mis Visitas</Link>
+              <Link to="/clientes" className="text-sm hover:text-blue-200 transition-colors">Clientes</Link>
+            </nav>
+          </div>
+
+          {/* Usuario y Salir */}
           <div className="flex items-center gap-4">
             <span className="text-sm text-blue-100">{user?.nombre}</span>
             <button
