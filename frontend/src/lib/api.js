@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
 
 export const api = axios.create({
-  baseURL: 'https://api-reportevisitas.onrender.com/api'
+  baseURL: '/api' // <-- Esta línea debe ser relativa
 });
 
 api.interceptors.request.use(config => {

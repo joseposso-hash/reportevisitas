@@ -35,7 +35,6 @@ export function VisitaDetalle() {
 
   const finalizarYDescargar = async () => {
     try {
-      // 1. Descargar el PDF
       const response = await api.get(`/visitas/${id}/pdf-general`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -45,9 +44,7 @@ export function VisitaDetalle() {
       link.click();
       link.remove();
 
-      // 2. Marcar la visita como finalizada
       await api.patch('/visitas/' + id, { estado: 'FINALIZADA' });
-      
       alert('✅ Reporte descargado y visita finalizada');
     } catch (error) {
       alert('Error al descargar o finalizar la visita');
@@ -173,7 +170,7 @@ export function VisitaDetalle() {
                 <div className="flex flex-col gap-2">
                   <input
                     type="text"
-                    placeholder="Descripción de la foto (ej: Falla en fuente de poder)"
+                    placeholder="Descripción de la foto..."
                     id={`desc-${eq.id}`}
                     className="w-full border p-1 rounded text-sm"
                   />
@@ -216,9 +213,28 @@ export function VisitaDetalle() {
                 <div className="mt-2 flex gap-2 flex-wrap">
                   {eq.fotos.map(f => (
                     <div key={f.id} className="relative group">
-                      <img src={'http://localhost:3001' + f.url} className="w-16 h-16 object-cover rounded border shadow-sm" alt="foto equipo" />
+                      <img 
+                        src={f.base64 || 'https://api-reportevisitas.onrender.com' + f.url} 
+                        className="w-16 h-16 object-cover rounded border shadow-sm" 
+                        alt="foto equipo" 
+                      />
+                      <button
+                        onClick={async () => {
+                          if (!confirm('¿Eliminar esta foto?')) return;
+                          try {
+                            await api.delete('/fotos-equipo/' + f.id);
+                            cargar();
+                          } catch (err) {
+                            alert('Error al eliminar: ' + (err.response?.data?.message || err.message));
+                          }
+                        }}
+                        className="absolute top-0 right-0 bg-red-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Eliminar foto"
+                      >
+                        ✕
+                      </button>
                       {f.descripcion && (
-                        <div className="absolute inset-0 bg-black/60 text-white text-[9px] p-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-center rounded">
+                        <div className="absolute inset-0 bg-black/60 text-white text-[9px] p-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-center rounded pointer-events-none">
                           {f.descripcion}
                         </div>
                       )}
