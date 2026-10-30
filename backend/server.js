@@ -22,6 +22,15 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '10mb' }));
+// Servir el frontend compilado
+const distPath = path.join(__dirname, 'dist');
+app.use(express.static(distPath));
+
+// Cualquier ruta que no sea /api, se la enviamos al index.html de React
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) return;
+  res.sendFile(path.join(distPath, 'index.html'));
+});
 
 // ============ CONFIGURACIÓN DE UPLOADS (Memoria para Base64) ============
 const upload = multer({ storage: multer.memoryStorage() });
