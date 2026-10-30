@@ -23,17 +23,8 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }));
 
-// ============ CONFIGURACIÓN DE UPLOADS ============
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-app.use('/uploads', express.static(uploadsDir));
-
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadsDir),
-    filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '_'))
-  })
-});
+// ============ CONFIGURACIÓN DE UPLOADS (Memoria para Base64) ============
+const upload = multer({ storage: multer.memoryStorage() });
 
 // ============ MIDDLEWARE DE AUTENTICACIÓN ============
 function auth(req, res, next) {
@@ -96,7 +87,7 @@ app.get('/api/visitas', auth, async (req, res) => {
 app.get('/api/visitas/:id', auth, async (req, res) => {
   const visita = await prisma.visita.findUnique({
     where: { id: req.params.id },
-    include: { cliente: true, sede: { include: { equipos: true } }, tecnico: { include: { usuario: true } }, checklist: true, fotos: true, cotizacion: { include: { items: true } } }
+    include: { cliente: true, sede: { include: { equipos: { include: { fotos: true } } } }, tecnico: { include: { usuario: true } }, checklist: true, fotos: true, cotizacion: { include: { items: true } } }
   });
   if (!visita) return res.status(404).json({ message: 'Visita no encontrada' });
   res.json(visita);
@@ -131,28 +122,28 @@ app.patch('/api/equipos/:id', auth, async (req, res) => {
   res.json(equipo);
 });
 
-// ============ RUTAS DE FOTOS DE EQUIPOS ============
+// ============ RUTAS DE FOTOS DE EQUIPOS (BASE64) ============
 app.post('/api/equipos/:id/foto', auth, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No se subió ninguna foto' });
+  
+  const base64Image = req.file.buffer.toString('base64');
+  const mimeType = req.file.mimetype;
+  const base64String = `data:${mimeType};base64,${base64Image}`;
+
   const foto = await prisma.fotoEquipo.create({
     data: {
       equipoId: req.params.id,
-      url: '/uploads/' + req.file.filename,
+      base64: base64String,
       descripcion: req.body.descripcion || null
     }
   });
-  res.json({ ...foto, urlAbsoluta: req.protocol + '://' + req.get('host') + foto.url });
+  res.json(foto);
 });
 
 app.delete('/api/fotos-equipo/:id', auth, async (req, res) => {
   try {
     const foto = await prisma.fotoEquipo.findUnique({ where: { id: req.params.id } });
     if (!foto) return res.status(404).json({ message: 'Foto no encontrada' });
-
-    const filePath = path.join(uploadsDir, path.basename(foto.url));
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
 
     await prisma.fotoEquipo.delete({ where: { id: req.params.id } });
     res.json({ ok: true, message: 'Foto eliminada' });
@@ -308,22 +299,26 @@ app.get('/api/equipos/:id/pdf', auth, async (req, res) => {
       let x = 50;
       let y = doc.y;
       
-      equipo.fotos.forEach((foto, i) => {
+      for (let i = 0; i < equipo.fotos.length; i++) {
+        const foto = equipo.fotos[i];
         if (i > 0 && i % 2 === 0) {
           x = 50;
           y += 190;
         }
-        const imgPath = path.join(uploadsDir, path.basename(foto.url));
-        if (fs.existsSync(imgPath)) {
-          doc.image(imgPath, x, y, { width: 220, height: 150 });
-          
-          if (foto.descripcion) {
-            doc.fontSize(8).fillColor('#475569').text(foto.descripcion, x, y + 155, { width: 220, align: 'center' });
-          }
-          
-          x += 240;
+        
+        if (foto.base64) {
+          // Convertir base64 a buffer para pdfkit
+          const base64Data = foto.base64.replace(/^data:image\/\w+;base64,/, '');
+          const buffer = Buffer.from(base64Data, 'base64');
+          doc.image(buffer, x, y, { width: 220, height: 150 });
         }
-      });
+        
+        if (foto.descripcion) {
+          doc.fontSize(8).fillColor('#475569').text(foto.descripcion, x, y + 155, { width: 220, align: 'center' });
+        }
+        
+        x += 240;
+      }
     }
 
     doc.end();

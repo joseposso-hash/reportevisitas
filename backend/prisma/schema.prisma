@@ -6,8 +6,9 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas = ["public"]
+  schemas  = ["public"]
 }
+
 model Usuario {
   id        String   @id @default(uuid())
   nombre    String
@@ -67,9 +68,9 @@ model Equipo {
   modelo               String?
   serial               String?
   ubicacion            String?
-  ip                   String?  // <-- Nuevo
-  usuario              String?  // <-- Nuevo
-  clave                String?  // <-- Nuevo
+  ip                   String?
+  usuario              String?
+  clave                String?
   estadoFisico         String?
   estadoFuncional      String?
   observaciones        String?
@@ -79,11 +80,13 @@ model Equipo {
   fotos                FotoEquipo[]
   @@schema("public")
 }
+
 model FotoEquipo {
   id          String   @id @default(uuid())
   equipoId    String
   equipo      Equipo   @relation(fields: [equipoId], references: [id], onDelete: Cascade)
-  url         String
+  url         String?
+  base64      String?  @db.Text
   descripcion String?
   createdAt   DateTime @default(now())
   @@schema("public")
