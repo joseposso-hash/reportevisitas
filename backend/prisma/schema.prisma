@@ -85,13 +85,12 @@ model FotoEquipo {
   id          String   @id @default(uuid())
   equipoId    String
   equipo      Equipo   @relation(fields: [equipoId], references: [id], onDelete: Cascade)
-  url         String?
+  url         String?  // <-- El '?' lo hace opcional
   base64      String?  @db.Text
   descripcion String?
   createdAt   DateTime @default(now())
   @@schema("public")
 }
-
 model Visita {
   id                    String                  @id @default(uuid())
   folio                 String                  @unique

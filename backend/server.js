@@ -21,16 +21,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json({ limit: '10mb' }));
-// Servir el frontend compilado
-const distPath = path.join(__dirname, 'dist');
-app.use(express.static(distPath));
-
-// Cualquier ruta que no sea /api, se la enviamos al index.html de React
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api')) return;
-  res.sendFile(path.join(distPath, 'index.html'));
-});
+app.use(express.json({ limit: '50mb' }));
 
 // ============ CONFIGURACIÓN DE UPLOADS (Memoria para Base64) ============
 const upload = multer({ storage: multer.memoryStorage() });
@@ -83,70 +74,100 @@ app.post('/api/auth/login', async (req, res) => {
 
 // ============ RUTAS DE VISITAS ============
 app.get('/api/visitas', auth, async (req, res) => {
-  const where = {};
-  if (req.query.tecnicoId) where.tecnicoId = req.query.tecnicoId;
-  const visitas = await prisma.visita.findMany({
-    where,
-    include: { cliente: true, sede: true, tecnico: { include: { usuario: true } } },
-    orderBy: { fechaProgramada: 'asc' }
-  });
-  res.json(visitas);
+  try {
+    const where = {};
+    if (req.query.tecnicoId) where.tecnicoId = req.query.tecnicoId;
+    const visitas = await prisma.visita.findMany({
+      where,
+      include: { cliente: true, sede: true, tecnico: { include: { usuario: true } } },
+      orderBy: { fechaProgramada: 'asc' }
+    });
+    res.json(visitas);
+  } catch (error) {
+    console.error('Error en /api/visitas:', error);
+    res.status(500).json({ message: 'Error interno al obtener visitas', error: error.message });
+  }
 });
 
 app.get('/api/visitas/:id', auth, async (req, res) => {
-  const visita = await prisma.visita.findUnique({
-    where: { id: req.params.id },
-    include: { cliente: true, sede: { include: { equipos: { include: { fotos: true } } } }, tecnico: { include: { usuario: true } }, checklist: true, fotos: true, cotizacion: { include: { items: true } } }
-  });
-  if (!visita) return res.status(404).json({ message: 'Visita no encontrada' });
-  res.json(visita);
+  try {
+    const visita = await prisma.visita.findUnique({
+      where: { id: req.params.id },
+      include: { cliente: true, sede: { include: { equipos: { include: { fotos: true } } } }, tecnico: { include: { usuario: true } }, checklist: true, fotos: true, cotizacion: { include: { items: true } } }
+    });
+    if (!visita) return res.status(404).json({ message: 'Visita no encontrada' });
+    res.json(visita);
+  } catch (error) {
+    console.error('Error en /api/visitas/:id:', error);
+    res.status(500).json({ message: 'Error interno', error: error.message });
+  }
 });
 
 app.patch('/api/visitas/:id', auth, async (req, res) => {
-  const v = await prisma.visita.update({ where: { id: req.params.id }, data: req.body });
-  res.json(v);
+  try {
+    const v = await prisma.visita.update({ where: { id: req.params.id }, data: req.body });
+    res.json(v);
+  } catch (error) {
+    console.error('Error en PATCH /api/visitas/:id:', error);
+    res.status(500).json({ message: 'Error al actualizar', error: error.message });
+  }
 });
 
 // ============ RUTAS DE EQUIPOS ============
 app.get('/api/equipos/sede/:sedeId', auth, async (req, res) => {
-  const equipos = await prisma.equipo.findMany({
-    where: { sedeId: req.params.sedeId },
-    include: { fotos: true },
-    orderBy: { tipo: 'asc' }
-  });
-  res.json(equipos);
+  try {
+    const equipos = await prisma.equipo.findMany({
+      where: { sedeId: req.params.sedeId },
+      include: { fotos: true },
+      orderBy: { tipo: 'asc' }
+    });
+    res.json(equipos);
+  } catch (error) {
+    console.error('Error en /api/equipos/sede:', error);
+    res.status(500).json({ message: 'Error al obtener equipos', error: error.message });
+  }
 });
 
 app.patch('/api/equipos/:id', auth, async (req, res) => {
-  const { estadoFisico, estadoFuncional, observaciones, ip, usuario, clave } = req.body;
-  const data = {};
-  if (estadoFisico) data.estadoFisico = estadoFisico;
-  if (estadoFuncional) data.estadoFuncional = estadoFuncional;
-  if (observaciones !== undefined) data.observaciones = observaciones;
-  if (ip !== undefined) data.ip = ip;
-  if (usuario !== undefined) data.usuario = usuario;
-  if (clave !== undefined) data.clave = clave;
+  try {
+    const { estadoFisico, estadoFuncional, observaciones, ip, usuario, clave } = req.body;
+    const data = {};
+    if (estadoFisico) data.estadoFisico = estadoFisico;
+    if (estadoFuncional) data.estadoFuncional = estadoFuncional;
+    if (observaciones !== undefined) data.observaciones = observaciones;
+    if (ip !== undefined) data.ip = ip;
+    if (usuario !== undefined) data.usuario = usuario;
+    if (clave !== undefined) data.clave = clave;
 
-  const equipo = await prisma.equipo.update({ where: { id: req.params.id }, data });
-  res.json(equipo);
+    const equipo = await prisma.equipo.update({ where: { id: req.params.id }, data });
+    res.json(equipo);
+  } catch (error) {
+    console.error('Error en PATCH /api/equipos/:id:', error);
+    res.status(500).json({ message: 'Error al actualizar equipo', error: error.message });
+  }
 });
 
 // ============ RUTAS DE FOTOS DE EQUIPOS (BASE64) ============
 app.post('/api/equipos/:id/foto', auth, upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ message: 'No se subió ninguna foto' });
-  
-  const base64Image = req.file.buffer.toString('base64');
-  const mimeType = req.file.mimetype;
-  const base64String = `data:${mimeType};base64,${base64Image}`;
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No se subió ninguna foto' });
+    
+    const base64Image = req.file.buffer.toString('base64');
+    const mimeType = req.file.mimetype;
+    const base64String = `data:${mimeType};base64,${base64Image}`;
 
-  const foto = await prisma.fotoEquipo.create({
-    data: {
-      equipoId: req.params.id,
-      base64: base64String,
-      descripcion: req.body.descripcion || null
-    }
-  });
-  res.json(foto);
+    const foto = await prisma.fotoEquipo.create({
+      data: {
+        equipoId: req.params.id,
+        base64: base64String,
+        descripcion: req.body.descripcion || null
+      }
+    });
+    res.json(foto);
+  } catch (error) {
+    console.error('Error al subir foto:', error);
+    res.status(500).json({ message: 'Error al subir foto', error: error.message });
+  }
 });
 
 app.delete('/api/fotos-equipo/:id', auth, async (req, res) => {
@@ -157,8 +178,8 @@ app.delete('/api/fotos-equipo/:id', auth, async (req, res) => {
     await prisma.fotoEquipo.delete({ where: { id: req.params.id } });
     res.json({ ok: true, message: 'Foto eliminada' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error al eliminar la foto' });
+    console.error('Error al eliminar foto:', error);
+    res.status(500).json({ message: 'Error al eliminar foto', error: error.message });
   }
 });
 
@@ -316,7 +337,6 @@ app.get('/api/equipos/:id/pdf', auth, async (req, res) => {
         }
         
         if (foto.base64) {
-          // Convertir base64 a buffer para pdfkit
           const base64Data = foto.base64.replace(/^data:image\/\w+;base64,/, '');
           const buffer = Buffer.from(base64Data, 'base64');
           doc.image(buffer, x, y, { width: 220, height: 150 });
@@ -339,57 +359,67 @@ app.get('/api/equipos/:id/pdf', auth, async (req, res) => {
 
 // ============ RUTAS DE COTIZACIONES ============
 app.post('/api/cotizaciones/visita/:visitaId', auth, async (req, res) => {
-  const { items, notas, validezDias = 15, ivaPorcentaje = 19 } = req.body;
-  
-  const existente = await prisma.cotizacion.findUnique({ where: { visitaId: req.params.visitaId } });
-  if (existente) return res.status(400).json({ message: 'Ya existe cotización para esta visita' });
+  try {
+    const { items, notas, validezDias = 15, ivaPorcentaje = 19 } = req.body;
+    
+    const existente = await prisma.cotizacion.findUnique({ where: { visitaId: req.params.visitaId } });
+    if (existente) return res.status(400).json({ message: 'Ya existe cotización para esta visita' });
 
-  const subtotal = items.reduce((s, i) => s + i.cantidad * i.precioUnitario, 0);
-  const iva = Math.round(subtotal * (ivaPorcentaje / 100));
-  const total = subtotal + iva;
+    const subtotal = items.reduce((s, i) => s + i.cantidad * i.precioUnitario, 0);
+    const iva = Math.round(subtotal * (ivaPorcentaje / 100));
+    const total = subtotal + iva;
 
-  const year = new Date().getFullYear();
-  const last = await prisma.cotizacion.findFirst({
-    where: { numero: { startsWith: 'COT-' + year + '-' } },
-    orderBy: { numero: 'desc' }
-  });
-  const n = last ? parseInt(last.numero.split('-')[2]) + 1 : 1;
-  const numero = 'COT-' + year + '-' + String(n).padStart(6, '0');
+    const year = new Date().getFullYear();
+    const last = await prisma.cotizacion.findFirst({
+      where: { numero: { startsWith: 'COT-' + year + '-' } },
+      orderBy: { numero: 'desc' }
+    });
+    const n = last ? parseInt(last.numero.split('-')[2]) + 1 : 1;
+    const numero = 'COT-' + year + '-' + String(n).padStart(6, '0');
 
-  const fechaVencimiento = new Date();
-  fechaVencimiento.setDate(fechaVencimiento.getDate() + validezDias);
+    const fechaVencimiento = new Date();
+    fechaVencimiento.setDate(fechaVencimiento.getDate() + validezDias);
 
-  const cot = await prisma.cotizacion.create({
-    data: {
-      visitaId: req.params.visitaId,
-      numero,
-      notas,
-      validezDias,
-      ivaPorcentaje,
-      subtotal,
-      iva,
-      total,
-      fechaVencimiento,
-      items: {
-        create: items.map(i => ({
-          descripcion: i.descripcion,
-          cantidad: i.cantidad,
-          precioUnitario: i.precioUnitario,
-          totalLinea: i.cantidad * i.precioUnitario
-        }))
-      }
-    },
-    include: { items: true }
-  });
-  res.json(cot);
+    const cot = await prisma.cotizacion.create({
+      data: {
+        visitaId: req.params.visitaId,
+        numero,
+        notas,
+        validezDias,
+        ivaPorcentaje,
+        subtotal,
+        iva,
+        total,
+        fechaVencimiento,
+        items: {
+          create: items.map(i => ({
+            descripcion: i.descripcion,
+            cantidad: i.cantidad,
+            precioUnitario: i.precioUnitario,
+            totalLinea: i.cantidad * i.precioUnitario
+          }))
+        }
+      },
+      include: { items: true }
+    });
+    res.json(cot);
+  } catch (error) {
+    console.error('Error en crear cotización:', error);
+    res.status(500).json({ message: 'Error al crear cotización', error: error.message });
+  }
 });
 
 app.get('/api/cotizaciones/visita/:visitaId', auth, async (req, res) => {
-  const cot = await prisma.cotizacion.findUnique({
-    where: { visitaId: req.params.visitaId },
-    include: { items: true }
-  });
-  res.json(cot);
+  try {
+    const cot = await prisma.cotizacion.findUnique({
+      where: { visitaId: req.params.visitaId },
+      include: { items: true }
+    });
+    res.json(cot);
+  } catch (error) {
+    console.error('Error en obtener cotización:', error);
+    res.status(500).json({ message: 'Error al obtener cotización', error: error.message });
+  }
 });
 
 // ============ INICIO DEL SERVIDOR ============

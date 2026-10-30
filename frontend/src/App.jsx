@@ -10,10 +10,8 @@ export default function App() {
 
   return (
     <Routes>
-      {/* Ruta pública */}
       <Route path="/login" element={<Login />} />
-
-      {/* Rutas protegidas */}
+      
       <Route path="/" element={
         token ? (
           <Layout>
@@ -34,7 +32,6 @@ export default function App() {
         )
       } />
 
-      {/* Redirección por defecto */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
