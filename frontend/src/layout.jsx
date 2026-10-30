@@ -12,11 +12,9 @@ export function Layout({ children }) {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Barra de navegación superior */}
       <header className="bg-blue-900 text-white shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           
-          {/* Logo y enlaces */}
           <div className="flex items-center gap-6">
             <Link to="/" className="flex items-center gap-2 font-bold text-lg hover:text-blue-200 transition-colors">
               <span>🛡️</span>
@@ -29,7 +27,6 @@ export function Layout({ children }) {
             </nav>
           </div>
 
-          {/* Usuario y Salir */}
           <div className="flex items-center gap-4">
             <span className="text-sm text-blue-100">{user?.nombre}</span>
             <button
@@ -42,7 +39,6 @@ export function Layout({ children }) {
         </div>
       </header>
 
-      {/* Contenido de la página */}
       <main className="max-w-6xl mx-auto px-4 py-6">
         {children}
       </main>

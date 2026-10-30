@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { VisitasHoy } from './pages/VisitasHoy';
 import { VisitaDetalle } from './pages/VisitaDetalle';
-import { Clientes } from './pages/Clientes'; // <-- Asegúrate de que esté
+import { Clientes } from './pages/Clientes';
 import { Layout } from './components/Layout';
 import { useAuthStore } from './stores/auth';
 
@@ -13,6 +13,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       
+      {/* Ruta principal con Layout */}
       <Route path="/" element={
         token ? (
           <Layout>
@@ -22,21 +23,23 @@ export default function App() {
           <Navigate to="/login" replace />
         )
       } />
-      
-      <Route path="/visitas/:id" element={
+
+      {/* Ruta de Clientes con Layout */}
+      <Route path="/clientes" element={
         token ? (
           <Layout>
-            <VisitaDetalle />
+            <Clientes />
           </Layout>
         ) : (
           <Navigate to="/login" replace />
         )
       } />
 
-      <Route path="/clientes" element={ // <-- Asegúrate de que esté esta ruta
+      {/* Ruta de Detalle con Layout */}
+      <Route path="/visitas/:id" element={
         token ? (
           <Layout>
-            <Clientes />
+            <VisitaDetalle />
           </Layout>
         ) : (
           <Navigate to="/login" replace />
