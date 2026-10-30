@@ -421,7 +421,54 @@ app.get('/api/cotizaciones/visita/:visitaId', auth, async (req, res) => {
     res.status(500).json({ message: 'Error al obtener cotización', error: error.message });
   }
 });
+// ============ RUTAS DE CLIENTES Y SEDES ============
+app.get('/api/clientes', auth, async (req, res) => {
+  try {
+    const clientes = await prisma.cliente.findMany({
+      include: { sedes: true },
+      orderBy: { razonSocial: 'asc' }
+    });
+    res.json(clientes);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener clientes', error: error.message });
+  }
+});
 
+app.post('/api/clientes', auth, async (req, res) => {
+  try {
+    const { razonSocial, nit, contactoNom, contactoTel, contactoMail, direccion, ciudad } = req.body;
+    const cliente = await prisma.cliente.create({
+      data: { razonSocial, nit, contactoNom, contactoTel, contactoMail, direccion, ciudad }
+    });
+    res.json(cliente);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al crear cliente', error: error.message });
+  }
+});
+
+app.post('/api/sedes', auth, async (req, res) => {
+  try {
+    const { clienteId, nombre, direccion, ciudad } = req.body;
+    const sede = await prisma.sede.create({
+      data: { clienteId, nombre, direccion, ciudad }
+    });
+    res.json(sede);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al crear sede', error: error.message });
+  }
+});
+
+app.post('/api/equipos', auth, async (req, res) => {
+  try {
+    const { sedeId, tipo, marca, modelo, serial, ubicacion } = req.body;
+    const equipo = await prisma.equipo.create({
+      data: { sedeId, tipo, marca, modelo, serial, ubicacion }
+    });
+    res.json(equipo);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al crear equipo', error: error.message });
+  }
+});
 // ============ INICIO DEL SERVIDOR ============
 app.listen(PORT, () => {
   console.log(`\n🚀 Backend en http://localhost:${PORT}/api`);

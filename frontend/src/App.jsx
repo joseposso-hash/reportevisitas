@@ -4,14 +4,22 @@ import { VisitasHoy } from './pages/VisitasHoy';
 import { VisitaDetalle } from './pages/VisitaDetalle';
 import { Layout } from './components/Layout';
 import { useAuthStore } from './stores/auth';
-
+import { Clientes } from './pages/Clientes';
 export default function App() {
   const token = useAuthStore(s => s.token);
 
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      
+      <Route path="/clientes" element={
+  token ? (
+    <Layout>
+      <Clientes />
+    </Layout>
+  ) : (
+    <Navigate to="/login" replace />
+  )
+} />
       <Route path="/" element={
         token ? (
           <Layout>

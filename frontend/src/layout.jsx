@@ -17,7 +17,11 @@ export function Layout({ children }) {
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 font-bold text-lg hover:text-blue-200 transition-colors">
             <span>🛡️</span>
-            <span>N24 Reportes</span>
+            <span>N24 Reportes</span> <Link to="/" className="flex items-center gap-2 font-bold text-lg hover:text-blue-200 transition-colors">
+  <span>🛡️</span>
+  <span>N24 Reportes</span>
+</Link>
+<Link to="/clientes" className="text-sm hover:text-blue-200 transition-colors ml-4">Clientes</Link>
           </Link>
           
           <div className="flex items-center gap-4">
